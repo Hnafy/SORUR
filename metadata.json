@@ -1,0 +1,6 @@
+{
+  "name": "سرور - لتصميمات السعادة",
+  "description": "متجر سرور الإلكتروني ولوحة تحكم متكاملة للمنتجات اليدوية الفاخرة بالجنيه المصري (ج.م) باستخدام React و Bootstrap و CSS",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
