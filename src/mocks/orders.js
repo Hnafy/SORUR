@@ -1,0 +1,96 @@
+// Mock orders mirroring FreeAPI EcomOrder schema.
+// List item: { _id, __v, address, coupon, createdAt, customer, discountedOrderPrice, isPaymentDone, orderPrice, paymentId, paymentProvider, status, totalOrderItems, updatedAt }
+// Detail: wraps order + items: { _id, order: { ..., items: [{ _id, product, quantity }] } }
+// Status enum: PENDING | DELIVERED | CANCELLED
+
+const ADDR_1 = {
+  _id: 'addr-001',
+  addressLine1: 'شارع التحرير، الدقي',
+  addressLine2: '',
+  city: 'الجيزة',
+  country: 'مصر',
+  pincode: '12613',
+  state: 'الجيزة',
+};
+
+export const seedOrders = () => [
+  {
+    _id: 'ORD-0921',
+    __v: 0,
+    address: ADDR_1,
+    coupon: '',
+    createdAt: '2024-10-24T10:00:00.000Z',
+    customer: { _id: 'u-cust-001', email: 'customer@sorur.com', username: 'customer' },
+    discountedOrderPrice: 450,
+    isPaymentDone: true,
+    orderPrice: 450,
+    paymentId: 'pay-001',
+    paymentProvider: 'RAZORPAY',
+    status: 'DELIVERED',
+    totalOrderItems: 3,
+    updatedAt: '2024-10-24T12:00:00.000Z',
+    items: [
+      { _id: 'oi-001', quantity: 1, product: { _id: 'prod-001', name: 'مبخرة خشبية فاخرة', price: 245, mainImage: { url: '' } } },
+      { _id: 'oi-002', quantity: 1, product: { _id: 'prod-006', name: 'طقم شموع عطرية', price: 120, mainImage: { url: '' } } },
+      { _id: 'oi-003', quantity: 1, product: { _id: 'prod-008', name: 'كوب فخاري يدوي', price: 85, mainImage: { url: '' } } },
+    ],
+  },
+  {
+    _id: 'ORD-0920',
+    __v: 0,
+    address: ADDR_1,
+    coupon: '',
+    createdAt: '2024-10-23T09:00:00.000Z',
+    customer: { _id: 'u-cust-001', email: 'customer@sorur.com', username: 'customer' },
+    discountedOrderPrice: 120,
+    isPaymentDone: false,
+    orderPrice: 120,
+    paymentId: '',
+    paymentProvider: 'UNKNOWN',
+    status: 'PENDING',
+    totalOrderItems: 1,
+    updatedAt: '2024-10-23T09:00:00.000Z',
+    items: [
+      { _id: 'oi-004', quantity: 1, product: { _id: 'prod-004', name: 'مفكرة جلدية كلاسيكية', price: 120, mainImage: { url: '' } } },
+    ],
+  },
+  {
+    _id: 'ORD-0919',
+    __v: 0,
+    address: ADDR_1,
+    coupon: '',
+    createdAt: '2024-10-22T15:00:00.000Z',
+    customer: { _id: 'u-cust-001', email: 'customer@sorur.com', username: 'customer' },
+    discountedOrderPrice: 880,
+    isPaymentDone: true,
+    orderPrice: 890,
+    paymentId: 'pay-002',
+    paymentProvider: 'RAZORPAY',
+    status: 'PENDING',
+    totalOrderItems: 3,
+    updatedAt: '2024-10-22T15:00:00.000Z',
+    items: [
+      { _id: 'oi-005', quantity: 2, product: { _id: 'prod-005', name: 'قلادة ذهبية ناعمة', price: 350, mainImage: { url: '' } } },
+      { _id: 'oi-006', quantity: 1, product: { _id: 'prod-003', name: 'مجموعة العناية الفاخرة', price: 180, mainImage: { url: '' } } },
+    ],
+  },
+  {
+    _id: 'ORD-0918',
+    __v: 0,
+    address: ADDR_1,
+    coupon: '',
+    createdAt: '2024-10-21T08:00:00.000Z',
+    customer: { _id: 'u-cust-001', email: 'customer@sorur.com', username: 'customer' },
+    discountedOrderPrice: 245,
+    isPaymentDone: false,
+    orderPrice: 245,
+    paymentId: '',
+    paymentProvider: 'UNKNOWN',
+    status: 'CANCELLED',
+    totalOrderItems: 1,
+    updatedAt: '2024-10-21T08:00:00.000Z',
+    items: [
+      { _id: 'oi-007', quantity: 1, product: { _id: 'prod-002', name: 'تحفة فنية سيراميك', price: 245, mainImage: { url: '' } } },
+    ],
+  },
+];

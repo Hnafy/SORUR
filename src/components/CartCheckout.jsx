@@ -1,5 +1,31 @@
 import React, { useState } from 'react';
 import { AVAILABLE_COUPONS } from '../data/mockData';
+import { useAuth } from '../context/AuthContext';
+
+function initialFormData(user, fallback) {
+  let defaultAddress = null;
+  try {
+    const defaultAddrId = localStorage.getItem('sorur_default_address');
+    const addresses = JSON.parse(localStorage.getItem('sorur_mock_addresses') || '[]');
+    defaultAddress = addresses.find((a) => a._id === defaultAddrId) || null;
+  } catch {
+    defaultAddress = null;
+  }
+
+  const profile = user?.profile || {};
+  const nameParts = (user?.username || '').split(' ').filter(Boolean);
+  const firstName = profile.firstName || nameParts[0] || fallback.firstName;
+  const lastName = profile.lastName || (nameParts.length > 1 ? nameParts.slice(1).join(' ') : '');
+
+  return {
+    firstName: firstName || fallback.firstName,
+    lastName: lastName || fallback.lastName,
+    address: defaultAddress?.addressLine1 || profile.address || fallback.address,
+    city: defaultAddress?.city || fallback.city,
+    phone: profile.phoneNumber || defaultAddress?.phoneNumber || fallback.phone,
+    paymentMethod: fallback.paymentMethod || 'card',
+  };
+}
 
 export default function CartCheckout({ 
   cartItems, 
@@ -10,14 +36,16 @@ export default function CartCheckout({
   onShowToast,
   onOrderPlaced
 }) {
-  const [formData, setFormData] = useState({
+  const { user } = useAuth();
+  const fallback = {
     firstName: 'محمد',
     lastName: 'عبدالله',
     address: 'شارع التحرير، الدقي',
     city: 'الجيزة',
     phone: '01012345678',
     paymentMethod: 'card'
-  });
+  };
+  const [formData, setFormData] = useState(() => initialFormData(user, fallback));
 
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);

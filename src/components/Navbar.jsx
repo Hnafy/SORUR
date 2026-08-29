@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import logo from '/logo 1.jpeg'
+import { useAuth } from '../context/AuthContext';
 
 export default function Navbar({ currentView, onNavigate, cartCount, wishlistCount, onSearchClick }) {
+  const { isAuthenticated, isAdmin } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -63,6 +65,15 @@ export default function Navbar({ currentView, onNavigate, cartCount, wishlistCou
 
           {/* Actions & Utilities */}
           <div className="d-flex align-items-center gap-2">
+            {/* Account / Login Button */}
+            <button
+              className="icon-action-btn"
+              onClick={() => onNavigate(isAdmin ? 'admin' : isAuthenticated ? 'customer-profile' : 'login')}
+              title={isAuthenticated ? 'حسابي' : 'تسجيل الدخول'}
+              aria-label={isAuthenticated ? 'حسابي' : 'تسجيل الدخول'}
+            >
+              <span className="material-symbols-outlined">{isAuthenticated ? 'account_circle' : 'person'}</span>
+            </button>
             {/* Search Button */}
             <button 
               className="icon-action-btn"
