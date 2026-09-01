@@ -8,9 +8,11 @@ import HeroSection from './components/HeroSection';
 import ProductCard from './components/ProductCard';
 import ProductDetail from './components/ProductDetail';
 import CartCheckout from './components/CartCheckout';
+import CartDrawer from './components/CartDrawer';
 import StoreCatalog from './components/StoreCatalog';
 import OffersView from './components/OffersView';
 import ToastNotification from './components/ToastNotification';
+import cartApi from './services/cartApi';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import CustomerProfile from './pages/profile/CustomerProfile';
@@ -82,28 +84,32 @@ export default function App() {
     return saved ? JSON.parse(saved) : INITIAL_ORDERS;
   });
 
-  const [cart, setCart] = useState(() => {
-    const saved = localStorage.getItem('sorur_cart');
-    return saved ? JSON.parse(saved) : [
-      {
-        id: '',
-        name: '',
-        price: 0,
-        color: '',
-        quantity: 0,
-        image: ''
-      }
-    ];
-  });
+const [cart, setCart] = useState(() => {
+  const saved = localStorage.getItem('sorur_cart');
+  return saved ? JSON.parse(saved) : [
+    {
+      id: '',
+      name: '',
+      price: 0,
+      color: '',
+      quantity: 0,
+      image: ''
+    }
+  ];
+});
 
   const [wishlist, setWishlist] = useState(() => {
     const saved = localStorage.getItem('sorur_wishlist');
     return saved ? JSON.parse(saved) : ['prod-001', 'prod-005'];
   });
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchModalOpen, setSearchModalOpen] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
+const [searchQuery, setSearchQuery] = useState('');
+const [searchModalOpen, setSearchModalOpen] = useState(false);
+const [toastMessage, setToastMessage] = useState('');
+const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
+const [cartBusyKey, setCartBusyKey] = useState(null);
+const [cartError, setCartError] = useState('');
+
 
   // Keep selectedProductId in sync with the URL for deep links / refresh.
   useEffect(() => {
@@ -122,6 +128,18 @@ export default function App() {
   useEffect(() => localStorage.setItem('sorur_orders', JSON.stringify(orders)), [orders]);
   useEffect(() => localStorage.setItem('sorur_cart', JSON.stringify(cart)), [cart]);
   useEffect(() => localStorage.setItem('sorur_wishlist', JSON.stringify(wishlist)), [wishlist]);
+ 
+useEffect(() => {
+  cartApi
+    .getCart()
+    .then((storedCart) => {
+      setCart(storedCart);
+    })
+    .catch((error) => {
+      setCartError(error.message);
+    });
+}, []);
+
 
   // Toast auto-clear
   useEffect(() => {
@@ -134,38 +152,146 @@ export default function App() {
   const showToast = (msg) => setToastMessage(msg);
 
   // Cart operations
-  const handleAddToCart = (product, quantity = 1, color = '') => {
-    const chosenColor = color || (product.colors?.[0]?.name || 'افتراضي');
-    setCart(prev => {
-      const existingIndex = prev.findIndex(item => item.id === product.id && item.color === chosenColor);
-      if (existingIndex > -1) {
-        const updated = [...prev];
-        updated[existingIndex].quantity += quantity;
-        return updated;
-      } else {
-        return [...prev, { id: product.id, name: product.name, price: product.price, color: chosenColor, quantity, image: product.image }];
-      }
+ // Cart operations
+
+// Adds a product to the cart and checks the available stock first.
+const handleAddToCart = async (
+  product,
+  quantity = 1,
+  color = ''
+) => {
+  setCartError('');
+
+  try {
+    const updatedCart = await cartApi.addItem({
+      product,
+      quantity,
+      color,
     });
-    showToast(`تمت إضافة "${product.name}" إلى سلة التسوق!`);
-  };
 
-  const handleUpdateCartQuantity = (id, color, newQty) => {
-    if (newQty <= 0) {
-      handleRemoveFromCart(id, color);
-      return;
-    }
-    setCart(prev => prev.map(item => (item.id === id && item.color === color ? { ...item, quantity: newQty } : item)));
-  };
+    setCart(updatedCart);
 
-  const handleRemoveFromCart = (id, color) => {
-    setCart(prev => prev.filter(item => !(item.id === id && item.color === color)));
-    showToast('تم حذف المنتج من السلة');
-  };
+    showToast(`${product.name} was added to your cart.`);
+  } catch (error) {
+    setCartError(error.message);
+    showToast(error.message);
+  }
+};
 
-  const handleClearCart = () => {
-    setCart([]);
-    showToast('تم تفريغ سلة التسوق');
-  };
+// Updates the quantity with an optimistic UI update.
+const handleUpdateCartQuantity = async (
+  item,
+  newQuantity
+) => {
+  const itemKey = `${item.id}:${item.color}`;
+
+  // Do not send another request while an item is busy.
+  if (cartBusyKey) {
+    return;
+  }
+
+  // Prevent quantities outside the valid range.
+  if (newQuantity < 1 || newQuantity > item.stock) {
+    return;
+  }
+
+  const previousCart = cart;
+
+  // Disable this item while the request is running.
+  setCartBusyKey(itemKey);
+  setCartError('');
+
+  // Optimistic update: update the UI immediately.
+  setCart((currentCart) =>
+    currentCart.map((cartItem) =>
+      cartItem.id === item.id &&
+      cartItem.color === item.color
+        ? {
+            ...cartItem,
+            quantity: newQuantity,
+          }
+        : cartItem
+    )
+  );
+
+  try {
+    const updatedCart = await cartApi.updateItem({
+      productId: item.id,
+      color: item.color,
+      quantity: newQuantity,
+    });
+
+    setCart(updatedCart);
+  } catch (error) {
+    // Roll back if the API request fails.
+    setCart(previousCart);
+    setCartError(error.message);
+    showToast(error.message);
+  } finally {
+    setCartBusyKey(null);
+  }
+};
+
+// Removes one item with an optimistic UI update.
+const handleRemoveFromCart = async (item) => {
+  const itemKey = `${item.id}:${item.color}`;
+
+  if (cartBusyKey) {
+    return;
+  }
+
+  const previousCart = cart;
+
+  setCartBusyKey(itemKey);
+  setCartError('');
+
+  setCart((currentCart) =>
+    currentCart.filter(
+      (cartItem) =>
+        !(
+          cartItem.id === item.id &&
+          cartItem.color === item.color
+        )
+    )
+  );
+
+  try {
+    const updatedCart = await cartApi.removeItem({
+      productId: item.id,
+      color: item.color,
+    });
+
+    setCart(updatedCart);
+    showToast(`${item.name} was removed from your cart.`);
+  } catch (error) {
+    setCart(previousCart);
+    setCartError(error.message);
+    showToast(error.message);
+  } finally {
+    setCartBusyKey(null);
+  }
+};
+const handleClearCart = async () => {
+  if (cartBusyKey) {
+    return;
+  }
+
+  const previousCart = cart;
+
+  setCartError('');
+  setCart([]);
+
+  try {
+    const updatedCart = await cartApi.clearCart();
+
+    setCart(updatedCart);
+    showToast('Your cart has been cleared.');
+  } catch (error) {
+    setCart(previousCart);
+    setCartError(error.message);
+    showToast(error.message);
+  }
+};
 
   const handleToggleWishlist = (productId) => {
     setWishlist(prev => {
@@ -198,13 +324,15 @@ export default function App() {
   // Layout with global Navbar + Footer for the public store and customer areas.
   const MainLayout = () => (
     <>
-      <Navbar
-        currentView={currentView}
-        onNavigate={navigateTo}
-        cartCount={totalCartCount}
-        wishlistCount={wishlist.length}
-        onSearchClick={() => setSearchModalOpen(true)}
-      />
+         <Navbar
+           currentView={currentView}
+           onNavigate={navigateTo}
+           cartCount={totalCartCount}
+           onCartClick={() => setCartDrawerOpen(true)}
+           wishlistCount={wishlist.length}
+           onSearchClick={() => setSearchModalOpen(true)}
+        />
+
       <main className="main-content">
         <Outlet />
       </main>
@@ -309,15 +437,15 @@ export default function App() {
           <Route
             path="/cart"
             element={
-              <CartCheckout
-                cartItems={cart}
-                onUpdateQuantity={handleUpdateCartQuantity}
-                onRemoveItem={handleRemoveFromCart}
-                onClearCart={handleClearCart}
-                onNavigate={navigateTo}
-                onShowToast={showToast}
-                onOrderPlaced={handleOrderPlaced}
-              />
+            <CartCheckout
+              cartItems={cart}
+              onUpdateQuantity={handleUpdateCartQuantity}
+              onRemoveItem={handleRemoveFromCart}
+              onClearCart={handleClearCart}
+              onNavigate={navigateTo}
+              busyItem={cartBusyKey}
+              cartError={cartError}
+            />
             }
           />
           <Route
@@ -360,6 +488,63 @@ export default function App() {
       </Routes>
 
       <ToastNotification message={toastMessage} onClose={() => setToastMessage('')} />
+        <CartDrawer
+  open={cartDrawerOpen}
+  items={cart}
+  subtotal={cart.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  )}
+  tax={Number(
+    (
+      cart.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0
+      ) * 0.14
+    ).toFixed(2)
+  )}
+  shipping={(() => {
+    const subtotal = cart.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
+
+    if (subtotal === 0) {
+      return 0;
+    }
+
+    return subtotal >= 1000 ? 0 : 60;
+  })()}
+  total={(() => {
+    const subtotal = cart.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
+
+    const tax = Number(
+      (subtotal * 0.14).toFixed(2)
+    );
+
+    const shipping =
+      subtotal === 0
+        ? 0
+        : subtotal >= 1000
+          ? 0
+          : 60;
+
+    return subtotal + tax + shipping;
+  })()}
+  onClose={() => setCartDrawerOpen(false)}
+  onUpdateQuantity={handleUpdateCartQuantity}
+  onRemoveItem={handleRemoveFromCart}
+  onClearCart={handleClearCart}
+  onViewCart={() => {
+    setCartDrawerOpen(false);
+    navigateTo('cart');
+  }}
+  busyItem={cartBusyKey}
+/>
+
 
       {searchModalOpen && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1060 }} tabIndex="-1">
