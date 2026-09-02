@@ -2,7 +2,15 @@ import React, { useState, useEffect } from 'react';
 import logo from '/logo 1.jpeg'
 import { useAuth } from '../context/AuthContext';
 
-export default function Navbar({ currentView, onNavigate, cartCount, wishlistCount, onSearchClick }) {
+export default function Navbar({
+  currentView,
+  onNavigate,
+  cartCount,
+  wishlistCount,
+  onSearchClick,
+  onCartClick,
+}) {
+
   const { isAuthenticated, isAdmin } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -85,12 +93,13 @@ export default function Navbar({ currentView, onNavigate, cartCount, wishlistCou
             </button>
 
             {/* Cart Button with Count Badge */}
-            <button 
-              className="icon-action-btn"
-              onClick={() => handleNav('cart')}
-              title="سلة التسوق"
-              aria-label="سلة التسوق"
-            >
+          <button
+             className="icon-action-btn"
+             onClick={() => onCartClick?.()}
+             title="Shopping Cart"
+             aria-label="Shopping Cart"
+           >
+
               <span className="material-symbols-outlined">shopping_cart</span>
               {cartCount > 0 && (
                 <span className="badge-cart-counter">{cartCount}</span>
@@ -135,7 +144,8 @@ export default function Navbar({ currentView, onNavigate, cartCount, wishlistCou
               </button>
               <button 
                 className={`text-end py-2 px-3 rounded-2 fw-semibold ${currentView === 'cart' ? 'bg-light text-primary' : 'text-dark'}`}
-                onClick={() => handleNav('cart')}
+                onClick={() => onCartClick?.()}
+
               >
                 سلة التسوق ({cartCount})
               </button>
