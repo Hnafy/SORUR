@@ -1,145 +1,104 @@
+import api from './api';
 import { INITIAL_PRODUCTS } from '../data/mockData';
 
-const CART_KEY = 'sorur_cart';
+const getLocalProduct = (productId) =>
+  INITIAL_PRODUCTS.find((product) => product.id === productId);
 
-const findProduct = (productId) => {
-  return INITIAL_PRODUCTS.find((product) => product.id === productId);
-};
+const getRemoteProductId = (product) =>
+  product?.apiId || product?._id || product?.remoteId || null;
 
-const getStock = (productId) => {
-  return findProduct(productId)?.stock ?? Number.MAX_SAFE_INTEGER;
-};
-
-const getStoredCart = () => {
-  try {
-    const storedCart = JSON.parse(
-      localStorage.getItem(CART_KEY) || '[]'
-    );
-
-    if (!Array.isArray(storedCart)) {
-      return [];
-    }
-
-    return storedCart
-      .filter((item) => item?.id && item.quantity > 0)
-      .map((item) => ({
-        ...item,
-        stock: item.stock ?? getStock(item.id),
-      }));
-  } catch {
-    return [];
-  }
-};
-
-const saveCart = (items) => {
-  localStorage.setItem(CART_KEY, JSON.stringify(items));
-  return items;
-};
-
-const simulateRequest = (result) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(result);
-    }, 120);
+const getRemoteProducts = async () => {
+  const response = await api.get('/ecommerce/products', {
+    params: { page: 1, limit: 100 },
   });
+
+  return response?.data?.products || response?.products || [];
 };
 
-export const cartApi = {
-  async getCart() {
-    const cart = getStoredCart();
+const resolveProductId = async (product) => {
+  const directId = getRemoteProductId(product);
+  if (directId) return directId;
 
-    return simulateRequest(cart);
-  },
+  const remoteProducts = await getRemoteProducts();
+  if (!remoteProducts.length) {
+    throw new Error('No products were returned by FreeAPI.');
+  }
 
-  async addItem({ product, quantity = 1, color = '' }) {
-    const cart = getStoredCart();
+  // المنتجات المحلية عندها prod-001, prod-002...
+  // نستخدم رقم المنتج للوصول للمنتج المقابل من FreeAPI.
+  const numericPart = String(product.id).match(/\d+/);
+  const index = numericPart ? Number(numericPart[0]) - 1 : 0;
+  const remoteProduct = remoteProducts[index] || remoteProducts[0];
+  const remoteId = remoteProduct?._id || remoteProduct?.id;
 
-    const selectedColor =
-      color || product.colors?.[0]?.name || 'Default';
+  if (!remoteId) {
+    throw new Error('The selected FreeAPI product has no valid ID.');
+  }
 
-    const existingIndex = cart.findIndex(
-      (item) =>
-        item.id === product.id &&
-        item.color === selectedColor
-    );
+  return remoteId;
+};
 
-    const currentQuantity =
-      existingIndex >= 0
-        ? cart[existingIndex].quantity
-        : 0;
+const normalizeCartItem = (cartItem) => {
+  const product = cartItem?.product || {};
+  const productId = product._id || cartItem.productId || cartItem.id;
 
-    const nextQuantity = currentQuantity + quantity;
-    const availableStock = getStock(product.id);
+  return {
+    id: productId,
+    apiId: productId,
+    cartItemId: cartItem._id,
+    name: product.name || 'Product',
+    price: Number(product.price || 0),
+    stock: Number(product.stock || 0),
+    quantity: Number(cartItem.quantity || 1),
+    image: product.mainImage?.url || product.image || '',
+    color: cartItem.color || 'Default',
+  };
+};
 
-    if (nextQuantity > availableStock) {
-      throw new Error(
-        `Only ${availableStock} item(s) available for ${product.name}.`
-      );
+const getCartItems = (response) =>
+  response?.data?.items || response?.items || [];
+
+const getCart = async () => {
+  const response = await api.get('/ecommerce/cart');
+  return getCartItems(response).map(normalizeCartItem);
+};
+
+const getStock = (product) => {
+  const localProduct = getLocalProduct(product?.id);
+  return Number(product?.stock || localProduct?.stock || 0);
+};
+
+const cartApi = {
+  getCart,
+
+  async addItem({ product, quantity = 1 }) {
+    const stock = getStock(product);
+    if (quantity < 1 || quantity > stock) {
+      throw new Error(`Only ${stock} item(s) are available.`);
     }
 
-    const nextItem = {
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      color: selectedColor,
-      quantity: nextQuantity,
-      image: product.image,
-      stock: availableStock,
-    };
+    const productId = await resolveProductId(product);
+    await api.post(`/ecommerce/cart/item/${productId}`, { quantity });
+    return getCart();
+  },
 
-    if (existingIndex >= 0) {
-      cart[existingIndex] = nextItem;
-    } else {
-      cart.push(nextItem);
+  async updateItem({ productId, quantity }) {
+    if (quantity < 1) {
+      throw new Error('Quantity must be at least 1.');
     }
 
-    return simulateRequest(saveCart(cart));
+    await api.post(`/ecommerce/cart/item/${productId}`, { quantity });
+    return getCart();
   },
-  async updateItem({ productId, color, quantity }) {
-    const cart = getStoredCart();
-    const availableStock = getStock(productId);
 
-    if (
-      quantity < 1 ||
-      quantity > availableStock
-    ) {
-      throw new Error(
-        `Quantity must be between 1 and ${availableStock}.`
-      );
-    }
-
-    const updatedCart = cart.map((item) => {
-      if (
-        item.id === productId &&
-        item.color === color
-      ) {
-        return {
-          ...item,
-          quantity,
-        };
-      }
-
-      return item;
-    });
-
-    return simulateRequest(saveCart(updatedCart));
-  },
-  async removeItem({ productId, color }) {
-    const cart = getStoredCart();
-
-    const updatedCart = cart.filter(
-      (item) =>
-        !(
-          item.id === productId &&
-          item.color === color
-        )
-    );
-
-    return simulateRequest(saveCart(updatedCart));
+  async removeItem({ productId }) {
+    await api.delete(`/ecommerce/cart/item/${productId}`);
+    return getCart();
   },
 
   async clearCart() {
-    return simulateRequest(saveCart([]));
+    await api.delete('/ecommerce/cart/clear');
+    return [];
   },
 };
 

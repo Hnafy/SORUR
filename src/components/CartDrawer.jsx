@@ -80,23 +80,19 @@ export default function CartDrawer({
                         >
                           <button
                             disabled={busy || item.quantity <= 1}
-                            onClick={() =>
-                              onUpdateQuantity(item, item.quantity - 1)
-                            }
+                           onClick={() => onUpdateQuantity(item, item.quantity - 1)}
                           >
-                            -
+                            −
                           </button>
 
-                          <span>{item.quantity}</span>
+<span>{item.quantity}</span>
 
-                          <button
-                            disabled={busy || item.quantity >= item.stock}
-                            onClick={() =>
-                              onUpdateQuantity(item, item.quantity + 1)
-                            }
-                          >
-                            +
-                          </button>
+<button
+  disabled={busy || item.quantity >= item.stock}
+  onClick={() => onUpdateQuantity(item, item.quantity + 1)}
+>
+  +
+</button>
                         </div>
 
                         <strong>
@@ -106,12 +102,10 @@ export default function CartDrawer({
                     </div>
 
                     <button
-                      className="btn btn-sm text-danger p-0"
-                      disabled={busy}
-                      onClick={() => onRemoveItem(item)}
-                      aria-label={`Remove ${item.name}`}
+                        disabled={busy}
+                        onClick={() => onRemoveItem(item)}
                     >
-                      ×
+                        Remove
                     </button>
                   </div>
                 );

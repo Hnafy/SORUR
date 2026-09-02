@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-export const TOKEN_KEY = '';
-export const USER_KEY = '';
+export const TOKEN_KEY = 'sorur_tokens';
+export const USER_KEY = 'sorur_user';
 
 export const readTokens = () => {
   try {
@@ -24,11 +24,11 @@ export const clearTokens = () => {
 const api = axios.create({
   baseURL: import.meta.env.VITE_BASE_URL || 'https://api.freeapi.app/api/v1',
   headers: { 'Content-Type': 'application/json' },
-});
+} );
 
 api.interceptors.request.use((config) => {
   const tokens = readTokens();
-  if (tokens && tokens.accessToken) {
+  if (tokens?.accessToken) {
     config.headers.Authorization = `Bearer ${tokens.accessToken}`;
   }
   return config;

@@ -26,7 +26,6 @@ export default function CustomerProfile({ onNavigate, onShowToast }) {
           setProfile(res.data);
         }
       } catch {
-        /* handled by auth guard */
       } finally {
         if (active) setLoading(false);
       }
@@ -48,22 +47,31 @@ export default function CustomerProfile({ onNavigate, onShowToast }) {
   };
 
   const handleSave = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      const res = await mockApi.profile.updateMyProfile(form, tokenHeaders());
-      if (res.success) {
-        setProfile(res.data);
-        setEditing(false);
-        onShowToast?.('تم تحديث بياناتك بنجاح');
-        await refreshUser();
-      }
-    } catch (err) {
-      onShowToast?.(err.message || 'خطأ أثناء التحديث');
-    } finally {
-      setSaving(false);
+  e.preventDefault();
+  setSaving(true);
+
+  try {
+    const res = await mockApi.profile.updateMyProfile(
+      form,
+      tokenHeaders()
+    );
+
+    if (res.success) {
+      setProfile(res.data);
+      setEditing(false);
+
+      onShowToast?.(
+        'تم تحديث بياناتك بنجاح'
+      );
     }
-  };
+  } catch (err) {
+    onShowToast?.(
+      err.message || 'خطأ أثناء التحديث'
+    );
+  } finally {
+    setSaving(false);
+  }
+};
 
   const Row = ({ label, value }) => (
     <div className="d-flex justify-content-between py-2 border-bottom">
