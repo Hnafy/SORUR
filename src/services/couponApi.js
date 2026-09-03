@@ -1,57 +1,62 @@
-import { AVAILABLE_COUPONS } from '../data/mockData';
+import api from './api';
 
-const simulateRequest = (result) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(result);
-    }, 120);
-  });
+const normalizeCode = (code) => {
+  return String(code || '')
+    .trim()
+    .toUpperCase();
 };
 
-const coupons = Object.entries(AVAILABLE_COUPONS).map(
-  ([code, coupon]) => ({
-    code,
-    discountPercent: coupon.discountPercent,
-    label: coupon.label,
-    expiresAt: '2099-12-31',
-    isActive: true,
-  })
-);
-
-const findCoupon = (couponCode) => {
-  const normalizedCode = couponCode.trim().toUpperCase();
-
-  return coupons.find(
-    (coupon) => coupon.code === normalizedCode
+const getCouponsFromResponse = (response) => {
+  return (
+    response?.data?.coupons ||
+    response?.coupons ||
+    []
   );
 };
 
-const isCouponExpired = (coupon) => {
-  return new Date(coupon.expiresAt) < new Date();
-};
-
-export const couponApi = {
+const couponApi = {
   async getAvailableCoupons() {
-    return simulateRequest(
-      coupons.filter(
-        (coupon) =>
-          coupon.isActive && !isCouponExpired(coupon)
-      )
+    const response = await api.get(
+      '/ecommerce/coupons/customer/available',
+      {
+        params: {
+          page: 1,
+          limit: 50,
+        },
+      }
     );
+
+    return getCouponsFromResponse(response);
   },
 
   async applyCoupon(couponCode) {
-    const coupon = findCoupon(couponCode);
+    const normalizedCode = normalizeCode(couponCode);
 
-    if (!coupon || !coupon.isActive || isCouponExpired(coupon)) {
-      throw new Error('This coupon is invalid or expired.');
+    if (!normalizedCode) {
+      throw new Error('Please enter a coupon code.');
     }
 
-    return simulateRequest(coupon);
+    return api.post(
+      '/ecommerce/coupons/c/apply',
+      {
+        couponCode: normalizedCode,
+      }
+    );
   },
 
-  async removeCoupon() {
-    return simulateRequest(null);
+  async removeCoupon(couponCode) {
+    const normalizedCode = normalizeCode(couponCode);
+
+    if (!normalizedCode) {
+      throw new Error('No coupon is currently applied.');
+    }
+
+    return api.post(
+      '/ecommerce/coupons/c/remove',
+      {
+        couponCode: normalizedCode,
+      }
+    );
   },
 };
 

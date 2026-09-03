@@ -29,11 +29,13 @@ export default function CartCheckout({
         const coupons = await couponApi.getAvailableCoupons();
 
         if (active) {
-          setAvailableCoupons(coupons);
+          setAvailableCoupons(Array.isArray(coupons) ? coupons : []);
         }
       } catch (error) {
         if (active) {
-          setCouponError(error.message);
+          setCouponError(
+            error.message || 'Unable to load available coupons.'
+          );
         }
       }
     };
@@ -43,13 +45,81 @@ export default function CartCheckout({
     return () => {
       active = false;
     };
-  }, []);
+  }, [cartItems.length]);
 
-  const handleApplyCoupon = async () => {
-    const normalizedCode = couponCode.trim().toUpperCase();
+  const getCouponCode = (coupon) => {
+    return coupon?.couponCode || coupon?.code || '';
+  };
+
+  const getCouponDiscount = (coupon) => {
+    return Number(
+      coupon?.discountValue ||
+      coupon?.discount ||
+      coupon?.discountPercent ||
+      0
+    );
+  };
+
+  const handleApplyCoupon = async (code = couponCode) => {
+    const normalizedCode = String(code || '').trim().toUpperCase();
 
     if (!normalizedCode) {
       setCouponError('Please enter a coupon code.');
+      return;
+    }
+
+    if (couponLoading) return;
+
+    setCouponLoading(true);
+    setCouponError('');
+
+    try {
+      await couponApi.applyCoupon(normalizedCode);
+
+      const selectedCoupon = availableCoupons.find(
+        (coupon) =>
+          getCouponCode(coupon).toUpperCase() === normalizedCode
+      );
+
+      setAppliedCoupon(
+        selectedCoupon || {
+          couponCode: normalizedCode,
+          discountValue: 0,
+        }
+      );
+
+      setCouponCode(normalizedCode);
+      setCouponsDrawerOpen(false);
+    } catch (error) {
+      setAppliedCoupon(null);
+      setCouponError(
+        error.message || 'This coupon is invalid or expired.'
+      );
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleSelectCoupon = (coupon) => {
+    const code = getCouponCode(coupon);
+
+    if (!code) {
+      setCouponError('This coupon has no valid code.');
+      return;
+    }
+
+    setCouponCode(code);
+    handleApplyCoupon(code);
+  };
+
+  const handleRemoveCoupon = async () => {
+    if (!appliedCoupon || couponLoading) return;
+
+    const code = getCouponCode(appliedCoupon);
+
+    if (!code) {
+      setAppliedCoupon(null);
+      setCouponCode('');
       return;
     }
 
@@ -57,63 +127,25 @@ export default function CartCheckout({
     setCouponError('');
 
     try {
-      const coupon = await couponApi.applyCoupon(normalizedCode);
-
-      setAppliedCoupon(coupon);
-      setCouponCode(coupon.code);
-    } catch (error) {
-      setAppliedCoupon(null);
-      setCouponError(error.message);
-    } finally {
-      setCouponLoading(false);
-    }
-  };
-
-  const handleSelectCoupon = async (coupon) => {
-    setCouponCode(coupon.code);
-    setCouponLoading(true);
-    setCouponError('');
-
-    try {
-      const applied = await couponApi.applyCoupon(coupon.code);
-
-      setAppliedCoupon(applied);
-      setCouponsDrawerOpen(false);
-    } catch (error) {
-      setAppliedCoupon(null);
-      setCouponError(error.message);
-    } finally {
-      setCouponLoading(false);
-    }
-  };
-
-  const handleRemoveCoupon = async () => {
-    setCouponLoading(true);
-    setCouponError('');
-
-    try {
-      await couponApi.removeCoupon();
-
+      await couponApi.removeCoupon(code);
       setAppliedCoupon(null);
       setCouponCode('');
     } catch (error) {
-      setCouponError(error.message);
+      setCouponError(
+        error.message || 'Unable to remove the coupon.'
+      );
     } finally {
       setCouponLoading(false);
     }
   };
 
   const subtotal = cartItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
+    (sum, item) => sum + Number(item.price) * Number(item.quantity),
     0
   );
+
   const discount = appliedCoupon
-    ? Number(
-        (
-          (subtotal * appliedCoupon.discountPercent) /
-          100
-        ).toFixed(2)
-      )
+    ? Math.min(subtotal, getCouponDiscount(appliedCoupon))
     : 0;
 
   const discountedSubtotal = Math.max(
@@ -223,8 +255,7 @@ export default function CartCheckout({
                       <div className="quantity-control">
                         <button
                           disabled={
-                            busy ||
-                            item.quantity <= 1
+                            busy || item.quantity <= 1
                           }
                           onClick={() =>
                             onUpdateQuantity(
@@ -292,7 +323,7 @@ export default function CartCheckout({
               {appliedCoupon && (
                 <div className="d-flex align-items-center justify-content-between gap-2 mb-2">
                   <span className="badge text-bg-success">
-                    Coupon: {appliedCoupon.code}
+                    Coupon: {getCouponCode(appliedCoupon)}
                   </span>
 
                   <button
@@ -306,11 +337,9 @@ export default function CartCheckout({
                 </div>
               )}
 
-              {appliedCoupon && (
+              {discount > 0 && (
                 <div className="d-flex justify-content-between mb-2 text-success">
-                  <span>
-                    Discount ({appliedCoupon.discountPercent}%)
-                  </span>
+                  <span>Discount</span>
 
                   <strong>
                     -{money(discount)}
@@ -352,16 +381,29 @@ export default function CartCheckout({
                     onChange={(event) =>
                       setCouponCode(event.target.value)
                     }
-                    disabled={couponLoading}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        handleApplyCoupon();
+                      }
+                    }}
+                    disabled={
+                      couponLoading ||
+                      Boolean(appliedCoupon)
+                    }
                   />
 
                   <button
                     type="button"
                     className="btn btn-outline-primary"
-                    onClick={handleApplyCoupon}
-                    disabled={couponLoading}
+                    onClick={() => handleApplyCoupon()}
+                    disabled={
+                      couponLoading ||
+                      Boolean(appliedCoupon)
+                    }
                   >
-                    {couponLoading ? 'Applying...' : 'Apply'}
+                    {couponLoading
+                      ? 'Applying...'
+                      : 'Apply'}
                   </button>
                 </div>
 
@@ -371,6 +413,7 @@ export default function CartCheckout({
                   onClick={() =>
                     setCouponsDrawerOpen(true)
                   }
+                  disabled={couponLoading}
                 >
                   View Available Coupons
                 </button>
@@ -434,37 +477,51 @@ export default function CartCheckout({
               </p>
             ) : (
               <div className="d-flex flex-column gap-3">
-                {availableCoupons.map((coupon) => (
-                  <div
-                    className="border rounded-3 p-3"
-                    key={coupon.code}
-                  >
-                    <div className="d-flex justify-content-between align-items-center gap-2 mb-2">
-                      <strong className="text-primary">
-                        {coupon.code}
-                      </strong>
+                {availableCoupons.map((coupon) => {
+                  const code = getCouponCode(coupon);
+                  const discountValue = getCouponDiscount(coupon);
 
-                      <span className="badge text-bg-success">
-                        {coupon.discountPercent}% OFF
-                      </span>
-                    </div>
-
-                    <p className="small text-muted mb-3">
-                      {coupon.label}
-                    </p>
-
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-primary w-100"
-                      onClick={() =>
-                        handleSelectCoupon(coupon)
-                      }
-                      disabled={couponLoading}
+                  return (
+                    <div
+                      className="border rounded-3 p-3"
+                      key={coupon._id || code}
                     >
-                      Apply Coupon
-                    </button>
-                  </div>
-                ))}
+                      <div className="d-flex justify-content-between align-items-center gap-2 mb-2">
+                        <strong className="text-primary">
+                          {code}
+                        </strong>
+
+                        <span className="badge text-bg-success">
+                          {coupon.type === 'PERCENTAGE'
+                            ? `${discountValue}% OFF`
+                            : `${discountValue} EGP OFF`}
+                        </span>
+                      </div>
+
+                      <p className="small text-muted mb-3">
+                        {coupon.name ||
+                          coupon.label ||
+                          `Minimum cart value: ${
+                            coupon.minimumCartValue || 0
+                          } EGP`}
+                      </p>
+
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-primary w-100"
+                        onClick={() =>
+                          handleSelectCoupon(coupon)
+                        }
+                        disabled={
+                          couponLoading ||
+                          Boolean(appliedCoupon)
+                        }
+                      >
+                        Apply Coupon
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </aside>
