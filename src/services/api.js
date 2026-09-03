@@ -1,7 +1,6 @@
 import axios from 'axios';
-
-export const TOKEN_KEY = '';
-export const USER_KEY = '';
+export const TOKEN_KEY = 'sorur_tokens';
+export const USER_KEY = 'sorur_user';
 
 export const readTokens = () => {
   try {

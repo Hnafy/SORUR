@@ -13,6 +13,7 @@ import StoreCatalog from './components/StoreCatalog';
 import OffersView from './components/OffersView';
 import ToastNotification from './components/ToastNotification';
 import cartApi from './services/cartApi';
+import couponApi from './services/couponApi';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import CustomerProfile from './pages/profile/CustomerProfile';
