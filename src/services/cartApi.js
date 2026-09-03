@@ -1,14 +1,4 @@
-import { INITIAL_PRODUCTS } from '../data/mockData';
-
 const CART_KEY = 'sorur_cart';
-
-const findProduct = (productId) => {
-  return INITIAL_PRODUCTS.find((product) => product.id === productId);
-};
-
-const getStock = (productId) => {
-  return findProduct(productId)?.stock ?? Number.MAX_SAFE_INTEGER;
-};
 
 const getStoredCart = () => {
   try {
@@ -24,7 +14,7 @@ const getStoredCart = () => {
       .filter((item) => item?.id && item.quantity > 0)
       .map((item) => ({
         ...item,
-        stock: item.stock ?? getStock(item.id),
+        stock: item.stock ?? Number.MAX_SAFE_INTEGER,
       }));
   } catch {
     return [];
@@ -69,7 +59,7 @@ export const cartApi = {
         : 0;
 
     const nextQuantity = currentQuantity + quantity;
-    const availableStock = getStock(product.id);
+    const availableStock = product.stock ?? Number.MAX_SAFE_INTEGER;
 
     if (nextQuantity > availableStock) {
       throw new Error(
@@ -97,7 +87,10 @@ export const cartApi = {
   },
   async updateItem({ productId, color, quantity }) {
     const cart = getStoredCart();
-    const availableStock = getStock(productId);
+    const existing = cart.find(
+      (item) => item.id === productId && item.color === color
+    );
+    const availableStock = existing?.stock ?? Number.MAX_SAFE_INTEGER;
 
     if (
       quantity < 1 ||
