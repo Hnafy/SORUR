@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import mockApi from '../../services/mockApi';
+import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import CustomerLayout from '../profile/CustomerLayout';
 
@@ -15,25 +15,30 @@ export default function CustomerAddresses({ onNavigate, onShowToast }) {
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
 
-  const tokenHeaders = () => {
-    const raw = localStorage.getItem('sorur_tokens');
-    return raw ? { Authorization: `Bearer ${JSON.parse(raw).accessToken}` } : {};
-  };
+const load = async () => {
+  setLoading(true);
 
-  const load = async () => {
-    setLoading(true);
-    try {
-      const res = await mockApi.address.getAllAddresses({ limit: 50 }, tokenHeaders());
-      if (res.success) {
-        setAddresses(res.data.addresses || []);
-        setDefaultId(localStorage.getItem('sorur_default_address'));
+  try {
+    const res = await api.get(
+      '/ecommerce/addresses',
+      {
+        params: {
+          page: 1,
+          limit: 50,
+        },
       }
-    } catch {
-      /* guarded */
-    } finally {
-      setLoading(false);
-    }
-  };
+    );
+
+    setAddresses(res?.data?.addresses || []);
+  } catch (err) {
+    onShowToast?.(
+      err.message || 'خطأ أثناء تحميل العناوين'
+    );
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   useEffect(() => {
     load();
@@ -51,31 +56,73 @@ export default function CustomerAddresses({ onNavigate, onShowToast }) {
     setModalOpen(true);
   };
 
-  const handleSave = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      if (editingId) {
-        const res = await mockApi.address.updateAddress(editingId, form, tokenHeaders());
-        if (res.success) onShowToast?.('تم تحديث العنوان بنجاح');
-      } else {
-        const res = await mockApi.address.createAddress(form, tokenHeaders());
-        if (res.success) {
-          onShowToast?.('تم إضافة العنوان بنجاح');
-          if (addresses.length === 0) {
-            await mockApi.address.setDefaultAddress(res.data._id, tokenHeaders());
-            setDefaultId(res.data._id);
-          }
-        }
+const handleSave = async (e) => {
+  e.preventDefault();
+  setSaving(true);
+
+  try {
+    if (editingId) {
+      const payload = {
+        addressLine1: form.addressLine1.trim(),
+        addressLine2: form.addressLine2.trim(),
+        city: form.city.trim(),
+        state: form.state.trim(),
+        pincode: String(form.pincode).trim(),
+        country: form.country.trim(),
+      };
+
+      const response = await api.patch(
+        `/ecommerce/addresses/${editingId}`,
+        payload
+      );
+
+      if (response?.success) {
+        onShowToast?.('تم تحديث العنوان بنجاح');
+        setModalOpen(false);
+        await load();
       }
-      setModalOpen(false);
-      load();
-    } catch (err) {
-      onShowToast?.(err.message || 'خطأ أثناء الحفظ');
-    } finally {
-      setSaving(false);
+    } else {
+      const payload = {
+        addressLine1: form.addressLine1.trim(),
+        city: form.city.trim(),
+        state: form.state.trim(),
+        pincode: String(form.pincode).trim(),
+        country: form.country.trim(),
+      };
+
+      const addressLine2 = form.addressLine2.trim();
+
+      if (addressLine2) {
+        payload.addressLine2 = addressLine2;
+      }
+
+      const response = await api.post(
+        '/ecommerce/addresses',
+        payload
+      );
+
+      if (response?.success && response?.data?._id) {
+        onShowToast?.('تم إضافة العنوان بنجاح');
+
+        setModalOpen(false);
+
+        await load();
+      } else {
+        throw new Error(
+          response?.message ||
+            'FreeAPI لم يرجع بيانات العنوان بشكل صحيح'
+        );
+      }
     }
-  };
+  } catch (error) {
+    onShowToast?.(
+      error.message || 'خطأ أثناء حفظ العنوان'
+    );
+  } finally {
+    setSaving(false);
+  }
+};
+
 
   const handleDelete = async (id) => {
     try {
