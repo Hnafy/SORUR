@@ -1,3 +1,209 @@
+# Admin Products Management Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Rewrite `AdminProducts.jsx` to manage real products on FreeAPI.app with multipart image upload, sub-image management, search, pagination, and toast/tab refresh.
+
+**Architecture:** Extend `src/services/productApi.js` with admin CRUD + multipart FormData builder; rewrite `src/pages/admin/AdminProducts.jsx` mirroring the migrated `AdminCategories.jsx` UX (data table, debounced search, pagination, create/edit modal, delete confirmation). Remove the hardcoded `Content-Type: application/json` default in `api.js` so FormData uploads work (axios otherwise JSON-serializes FormData and loses files).
+
+**Tech Stack:** React 19 (JSX, no TS), Vite, Bootstrap 5 RTL, axios (`api` instance in `src/services/api.js`), `form-data` via native `FormData`/`File`.
+
+**Verification:** No unit-test framework exists. Gates are `npm run lint` (`tsc --noEmit`) and `npm run build` (`vite build`), plus live FreeAPI smoke tests described inline.
+
+---
+
+## File Structure
+
+- **Modify** `src/services/api.js` — remove global `Content-Type: application/json` default (1 line).
+- **Modify** `src/services/productApi.js` — add `buildProductFormData`, `normalizeProductAdmin`, `fetchAdminProducts`, `fetchAllCategories`, `createProduct`, `updateProduct`, `deleteProduct`, `removeSubImage`.
+- **Rewrite** `src/pages/admin/AdminProducts.jsx` — full page (table, search, pagination, view/delete/create/edit modals, image galleries).
+
+---
+
+## Task 1: Remove global JSON Content-Type default in `api.js`
+
+**Files:**
+- Modify: `src/services/api.js:7-10`
+
+- [ ] **Step 1: Edit the axios instance creation**
+
+In `src/services/api.js`, change:
+
+```js
+const api = axios.create({
+  baseURL: import.meta.env.VITE_BASE_URL || 'https://api.freeapi.app/api/v1',
+  headers: { 'Content-Type': 'application/json' },
+});
+```
+
+to:
+
+```js
+const api = axios.create({
+  baseURL: import.meta.env.VITE_BASE_URL || 'https://api.freeapi.app/api/v1',
+});
+```
+
+Why: axios v1's `transformRequest` JSON-serializes `FormData` when the request Content-Type contains `application/json` (dropping file uploads). With no forced Content-Type default, axios sets `application/json` automatically for JSON object bodies (auth, categories, products reads are unaffected), and lets the browser set the proper `multipart/form-data; boundary=...` for FormData uploads.
+
+- [ ] **Step 2: Run lint**
+
+Run: `npm run lint`
+Expected: exits 0, no output.
+
+- [ ] **Step 3: Run build**
+
+Run: `npm run build`
+Expected: `✓ built in ...s`
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add src/services/api.js
+git commit -m "chore: drop forced JSON content-type so FormData uploads work"
+```
+
+---
+
+## Task 2: Add admin CRUD + multipart helpers to productApi
+
+**Files:**
+- Modify: `src/services/productApi.js`
+
+- [ ] **Step 1: Add the admin normalizer and multipart builder after the existing `normalizeProduct`**
+
+Append these to `src/services/productApi.js` (keep all existing store methods intact):
+
+```js
+// Preserves raw server shape needed by the admin editor: sub-images keep their
+// _id so they can be removed individually via removeSubImage.
+export const normalizeProductAdmin = (product) => {
+  if (!product) return null;
+  const mainImageUrl =
+    typeof product.mainImage === 'string'
+      ? product.mainImage
+      : product.mainImage?.url || product.mainImage?.localPath || '';
+  const subImages = (product.subImages || [])
+    .map((img) => ({
+      id: img._id || null,
+      url: typeof img === 'string' ? img : img?.url || img?.localPath || '',
+    }))
+    .filter((s) => s.url);
+  const category = product.category;
+  return {
+    id: product._id || product.id,
+    name: product.name || product.title || '',
+    description: product.description || '',
+    price: product.price ?? 0,
+    stock: product.stock ?? 0,
+    categoryId: typeof category === 'object' && category ? category._id || category.id || '' : String(category || ''),
+    categoryName: typeof category === 'object' && category ? category.name || '' : '',
+    mainImage: mainImageUrl,
+    subImages,
+  };
+};
+
+const buildProductFormData = (payload) => {
+  const fd = new FormData();
+  fd.append('name', payload.name);
+  fd.append('description', payload.description || '');
+  fd.append('category', payload.category);
+  fd.append('price', payload.price);
+  fd.append('stock', payload.stock);
+  if (payload.mainImage instanceof File) {
+    fd.append('mainImage', payload.mainImage);
+  }
+  (payload.subImages || []).forEach((f) => {
+    if (f instanceof File) fd.append('subImages', f);
+  });
+  return fd;
+};
+```
+
+- [ ] **Step 2: Add admin methods to the exported `productApi` object**
+
+Inside the existing `export const productApi = { ... }`, add these methods (before the closing `};`):
+
+```js
+  // Admin list (richer shape for the admin table/edit form)
+  async fetchAdminProducts({ page = 1, limit = 10 } = {}) {
+    const res = await api.get('/ecommerce/products', { params: { page, limit } });
+    const data = res?.data || res || {};
+    return {
+      products: (data.products || []).map(normalizeProductAdmin),
+      totalProducts: data.totalProducts || 0,
+      totalPages: data.totalPages || 1,
+      page: data.page || page,
+      limit: data.limit || limit,
+      hasNextPage: !!data.hasNextPage,
+      hasPrevPage: !!data.hasPrevPage,
+    };
+  },
+
+  // Flat category list for the product form dropdown
+  async fetchAllCategories({ limit = 100 } = {}) {
+    const res = await api.get('/ecommerce/categories', { params: { page: 1, limit } });
+    const data = res?.data || res || {};
+    return (data.categories || []).map((c) => ({
+      id: c._id || c.id,
+      name: c.name || '',
+    }));
+  },
+
+  // Multipart create (mainImage File required by FreeAPI)
+  async createProduct(payload, onUploadProgress) {
+    const res = await api.post('/ecommerce/products', buildProductFormData(payload), { onUploadProgress });
+    return normalizeProductAdmin(res?.data || res || null);
+  },
+
+  // Multipart update. ALWAYS include category (FreeAPI 422 otherwise). New
+  // sub-images are appended to existing ones; mainImage only replaced if a File
+  // is present.
+  async updateProduct(id, payload, onUploadProgress) {
+    const res = await api.patch(`/ecommerce/products/${id}`, buildProductFormData(payload), { onUploadProgress });
+    return normalizeProductAdmin(res?.data || res || null);
+  },
+
+  async deleteProduct(id) {
+    const res = await api.delete(`/ecommerce/products/${id}`);
+    return res?.data?.deletedProduct || res?.data || null;
+  },
+
+  async removeSubImage(productId, subImageId) {
+    const res = await api.patch(`/ecommerce/products/remove/subimage/${productId}/${subImageId}`);
+    return normalizeProductAdmin(res?.data || res || null);
+  },
+```
+
+- [ ] **Step 3: Run lint**
+
+Run: `npm run lint`
+Expected: exits 0.
+
+- [ ] **Step 4: Run build**
+
+Run: `npm run build`
+Expected: `✓ built in ...s`
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/services/productApi.js
+git commit -m "feat: add admin product CRUD + multipart upload to productApi"
+```
+
+---
+
+## Task 3: Rewrite AdminProducts — table, load, search, pagination
+
+**Files:**
+- Rewrite: `src/pages/admin/AdminProducts.jsx`
+
+- [ ] **Step 1: Replace the entire file**
+
+Write `src/pages/admin/AdminProducts.jsx` with this content (full page — table, search, pagination, view modal, delete confirmation, create/edit modal with image galleries):
+
+```jsx
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { productApi } from '../../services/productApi';
 import { useAuth } from '../../context/AuthContext';
@@ -100,11 +306,23 @@ export default function AdminProducts({ onNavigate, onShowToast }) {
   const [saving, setSaving] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
+  const revokeUrls = useCallback((items) => {
+    items.forEach((it) => {
+      if (it?.preview) {
+        try {
+          URL.revokeObjectURL(it.preview);
+        } catch {
+          /* noop */
+        }
+      }
+    });
+  }, []);
+
   const closeModal = useCallback(() => {
     setModalOpen(false);
     setEditing(null);
     setForm(EMPTY_FORM);
-    setFieldError('');
+    setMainPreview('');
     if (mainPreview) {
       try {
         URL.revokeObjectURL(mainPreview);
@@ -112,7 +330,7 @@ export default function AdminProducts({ onNavigate, onShowToast }) {
         /* noop */
       }
     }
-    setMainPreview('');
+    setFieldError('');
     setUploadProgress(0);
   }, [mainPreview]);
 
@@ -121,7 +339,6 @@ export default function AdminProducts({ onNavigate, onShowToast }) {
     setEditing(null);
     setMainPreview('');
     setFieldError('');
-    setUploadProgress(0);
     setModalOpen(true);
   };
 
@@ -604,9 +821,7 @@ export default function AdminProducts({ onNavigate, onShowToast }) {
                   <div className="border rounded-3 p-3 bg-light bg-opacity-50">
                     <div className="d-flex justify-content-between align-items-center mb-2">
                       <label className="form-label small fw-bold text-dark mb-0">صور إضافية (اختياري)</label>
-                      <span
-                        className={`text-muted small ${form.newSubFiles.length + (editing ? form.existingSubImages.length : 0) >= MAX_SUB_IMAGES ? 'text-danger fw-bold' : ''}`}
-                      >
+                      <span className={`text-muted small ${form.newSubFiles.length + (editing ? form.existingSubImages.length : 0) >= MAX_SUB_IMAGES ? 'text-danger fw-bold' : ''}`}>
                         {form.newSubFiles.length + (editing ? form.existingSubImages.length : 0)}/{MAX_SUB_IMAGES}
                       </span>
                     </div>
@@ -722,3 +937,53 @@ export default function AdminProducts({ onNavigate, onShowToast }) {
     </AdminLayout>
   );
 }
+```
+
+- [ ] **Step 2: Run lint**
+
+Run: `npm run lint`
+Expected: exits 0.
+
+- [ ] **Step 3: Run build**
+
+Run: `npm run build`
+Expected: `✓ built in ...s`
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add src/pages/admin/AdminProducts.jsx
+git commit -m "feat: admin products management with real FreeAPI + image uploads"
+```
+
+---
+
+## Task 4: Live smoke test against FreeAPI
+
+Requires a currently-valid backend ADMIN (the shared FreeAPI DB is reset periodically; register one first).
+
+**Files:**
+- Test: none (manual shell verification)
+
+- [ ] **Step 1: Register a fresh admin and verify the full product flow with the app's exact API calls**
+
+Run: `npm run dev` then in the browser: log in with the fresh admin credentials, register products via the admin UI (add main + sub images, edit, remove a sub-image, delete). Verify toasts and table refresh appear.
+
+Alternatively, verify the service layer directly with a script using the same endpoint paths the code uses (see design doc "Verification"). Expected outcomes:
+- Create product with 1 main + 2 sub images → appears in list immediately.
+- Edit price/name → toast + row updates.
+- Remove one existing sub-image → it disappears from the edit form and view modal.
+- Delete product → confirmation modal → row removed.
+
+- [ ] **Step 2: Final lint + build**
+
+Run: `npm run lint` then `npm run build`
+Expected: both exit 0.
+
+---
+
+## Self-Review
+
+- **Spec coverage:** All spec items are covered — product CRUD (Task 2 + Task 3), multipart image upload with previews and progress (Task 3 modal), sub-image add/remove (Task 3 handlers), pagination/search/datatable (Task 3), view/edit/delete actions + confirmation dialog (Task 3), auto-refresh after mutations (Task 3 `load()` calls), no mock imports (Task 3 rewrite), FormData upload enabled (Task 1).
+- **Placeholder scan:** No TBD/TODO; all code is inline.
+- **Type consistency:** `normalizeProductAdmin` returns `{ id, name, description, price, stock, categoryId, categoryName, mainImage, subImages }`; the page consumes exactly these fields. `fetchAdminProducts` maps with it; `createProduct`/`updateProduct`/`removeSubImage` all return the same shape. `fetchAllCategories` returns `{ id, name }[]` consumed by the dropdown and `categoriesById`. `deleteProduct` returns `res?.data?.deletedProduct || res?.data || null` matching FreeAPI's `{ deletedProduct }` envelope (interceptor unwraps the outer `data` first).

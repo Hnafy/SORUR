@@ -18,7 +18,7 @@ export default function Register({ onNavigate, onShowToast }) {
     }
     setLoading(true);
     try {
-      const res = await register(form.username.trim(), form.email.trim(), form.password, 'USER');
+      const res = await register(form.username.trim(), form.email.trim(), form.password);
       if (res.success) {
         onShowToast?.('تم إنشاء الحساب بنجاح!');
         await login(form.email.trim(), form.password);

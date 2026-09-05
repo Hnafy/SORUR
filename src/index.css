@@ -1245,3 +1245,38 @@ input, select, textarea {
     gap: 1rem;
   }
 }
+
+.coupon-section {
+  background-color: var(--color-surface-low);
+}
+
+.coupon-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1060;
+  border: 0;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.coupon-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 1070;
+  width: min(430px, 100vw);
+  height: 100vh;
+  padding: 1.25rem;
+  overflow-y: auto;
+  background-color: #ffffff;
+  box-shadow: -8px 0 28px rgba(0, 0, 0, 0.15);
+}
+
+.coupon-drawer .border {
+  border-color: var(--color-outline-variant) !important;
+}
+
+@media (max-width: 576px) {
+  .coupon-drawer {
+    width: 100vw;
+  }
+}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, Outlet, useNavigate, useLocation, useParams } from 'react-router-dom';
-import { INITIAL_PRODUCTS, INITIAL_ORDERS } from './data/mockData';
 import { useAuth } from './context/AuthContext';
+import productApi from './services/productApi';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import HeroSection from './components/HeroSection';
@@ -12,19 +12,21 @@ import CartDrawer from './components/CartDrawer';
 import StoreCatalog from './components/StoreCatalog';
 import OffersView from './components/OffersView';
 import ToastNotification from './components/ToastNotification';
+import cartApi from './services/cartApi';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import CustomerProfile from './pages/profile/CustomerProfile';
 import CustomerAddresses from './pages/addresses/CustomerAddresses';
 import CustomerOrders from './pages/orders/CustomerOrders';
 import CustomerOrderDetail from './pages/orders/CustomerOrderDetail';
+import CheckoutPage from './pages/checkout/CheckoutPage';
+import OrderConfirmation from './pages/checkout/OrderConfirmation';
 import AdminOverview from './pages/admin/AdminOverview';
 import AdminProducts from './pages/admin/AdminProducts';
 import AdminCategories from './pages/admin/AdminCategories';
 import AdminCoupons from './pages/admin/AdminCoupons';
 import AdminOrders from './pages/admin/AdminOrders';
 import NotFound from './pages/NotFound';
-import cartApi from './services/cartApi';
 // ahmed
 const VIEW_TO_PATH = {
   "home": '/',
@@ -36,6 +38,8 @@ const VIEW_TO_PATH = {
   'customer-profile': '/customer/profile',
   'customer-addresses': '/customer/addresses',
   'customer-orders': '/customer/orders',
+  'checkout': '/checkout',
+  'order-confirmation': '/order-confirmation',
   "admin": '/admin',
   'admin-products': '/admin/products',
   'admin-categories': '/admin/categories',
@@ -56,6 +60,8 @@ function pathToViewKey(pathname) {
   if (p.startsWith('/customer/profile')) return 'customer-profile';
   if (p.startsWith('/customer/addresses')) return 'customer-addresses';
   if (p.startsWith('/customer/orders')) return 'customer-orders';
+  if (p === '/checkout') return 'checkout';
+  if (p === '/order-confirmation') return 'order-confirmation'; 
   if (p.startsWith('/admin/products')) return 'admin-products';
   if (p.startsWith('/admin/categories')) return 'admin-categories';
   if (p.startsWith('/admin/coupons')) return 'admin-coupons';
@@ -74,24 +80,18 @@ export default function App() {
     return m ? decodeURIComponent(m[1]) : 'prod-001';
   });
 
-  const [products, setProducts] = useState(() => {
-    const saved = localStorage.getItem('sorur_products');
-    return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
-  });
+  const [bestSellers, setBestSellers] = useState([]);
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchResultsLoading, setSearchResultsLoading] = useState(false);
 
-  const [orders, setOrders] = useState(() => {
-    const saved = localStorage.getItem('sorur_orders');
-    return saved ? JSON.parse(saved) : INITIAL_ORDERS;
-  });
-
+  // The cart is stored on the server (FreeAPI), not in localStorage.
   const [cart, setCart] = useState([]);
-
   const [wishlist, setWishlist] = useState(() => {
     const saved = localStorage.getItem('sorur_wishlist');
     return saved ? JSON.parse(saved) : ['prod-001', 'prod-005'];
   });
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const [modalSearch, setModalSearch] = useState('');
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
@@ -111,10 +111,8 @@ export default function App() {
   };
 
   // Local storage synchronization
-  useEffect(() => localStorage.setItem('sorur_products', JSON.stringify(products)), [products]);
-  useEffect(() => localStorage.setItem('sorur_orders', JSON.stringify(orders)), [orders]);
-  // The cart is stored by FreeAPI, not in localStorage.
   useEffect(() => localStorage.setItem('sorur_wishlist', JSON.stringify(wishlist)), [wishlist]);
+
   // Load the cart only after the user has authenticated.
   useEffect(() => {
     if (!isAuthenticated) {
@@ -138,6 +136,45 @@ export default function App() {
       active = false;
     };
   }, [isAuthenticated]);
+
+  // Fetch best sellers for the homepage
+  useEffect(() => {
+    let active = true;
+    productApi
+      .fetchProducts({ page: 1, limit: 8 })
+      .then((result) => {
+        if (active) setBestSellers(result.products || []);
+      })
+      .catch(() => {
+        if (active) setBestSellers([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Debounced live search for the search modal (only while the modal is open).
+  useEffect(() => {
+    if (!searchModalOpen) {
+      setSearchResults([]);
+      setSearchResultsLoading(false);
+      return;
+    }
+    if (!modalSearch.trim()) {
+      setSearchResults([]);
+      setSearchResultsLoading(false);
+      return;
+    }
+    setSearchResultsLoading(true);
+    const t = setTimeout(() => {
+      productApi
+        .fetchProducts({ page: 1, limit: 8, query: modalSearch.trim() })
+        .then((result) => setSearchResults(result.products || []))
+        .catch(() => setSearchResults([]))
+        .finally(() => setSearchResultsLoading(false));
+    }, 400);
+    return () => clearTimeout(t);
+  }, [modalSearch, searchModalOpen]);
 
   // Toast auto-clear
   useEffect(() => {
@@ -254,13 +291,6 @@ const handleClearCart = async () => {
     setSearchModalOpen(false);
   };
 
-  const handleOrderPlaced = (newOrder) => {
-    setOrders(prev => [newOrder, ...prev]);
-    showToast('تم إنشاء طلبك بنجاح!');
-  };
-
-  const selectedProduct = products.find(p => p.id === selectedProductId) || products[0];
-  const bestSellers = products.filter(p => p.isBestSeller).slice(0, 4);
   const totalCartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const currentView = pathToViewKey(location.pathname);
 
@@ -273,7 +303,7 @@ const handleClearCart = async () => {
         cartCount={totalCartCount}
         onCartClick={() => setCartDrawerOpen(true)}
         wishlistCount={wishlist.length}
-        onSearchClick={() => setSearchModalOpen(true)}
+        onSearchClick={() => { setModalSearch(''); setSearchModalOpen(true); }}
       />
       <main className="main-content">
         <Outlet />
@@ -352,13 +382,10 @@ const handleClearCart = async () => {
             path="/shop"
             element={
               <StoreCatalog
-                products={products}
                 onSelectProduct={handleSelectProduct}
                 onAddToCart={handleAddToCart}
                 wishlist={wishlist}
                 onToggleWishlist={handleToggleWishlist}
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
               />
             }
           />
@@ -366,12 +393,11 @@ const handleClearCart = async () => {
             path="/product/:id"
             element={
               <ProductDetail
-                product={selectedProduct}
-                allProducts={products}
+                productId={selectedProductId}
                 onSelectProduct={handleSelectProduct}
                 onAddToCart={handleAddToCart}
                 onNavigate={navigateTo}
-                isWishlisted={wishlist.includes(selectedProduct?.id)}
+                isWishlisted={wishlist.includes(selectedProductId)}
                 onToggleWishlist={handleToggleWishlist}
               />
             }
@@ -379,22 +405,38 @@ const handleClearCart = async () => {
           <Route
             path="/cart"
             element={
-              <CartCheckout
+            <CartCheckout
+              cartItems={cart}
+              onUpdateQuantity={handleUpdateCartQuantity}
+              onRemoveItem={handleRemoveFromCart}
+              onClearCart={handleClearCart}
+              onNavigate={navigateTo}
+              busyItem={cartBusyKey}
+              cartError={cartError}
+              onProceedToCheckout={() => navigate('/checkout')}
+            />
+            }
+          />
+                    <Route
+            path="/checkout"
+            element={
+              <CheckoutPage
                 cartItems={cart}
-                onUpdateQuantity={handleUpdateCartQuantity}
-                onRemoveItem={handleRemoveFromCart}
                 onClearCart={handleClearCart}
-                onNavigate={navigateTo}
-                busyItem={cartBusyKey}
-                cartError={cartError}
+                onShowToast={showToast}
               />
             }
           />
+
+          <Route
+            path="/order-confirmation"
+            element={<OrderConfirmation />}
+          />
+
           <Route
             path="/offers"
             element={
               <OffersView
-                products={products}
                 onSelectProduct={handleSelectProduct}
                 onAddToCart={handleAddToCart}
                 wishlist={wishlist}
@@ -463,26 +505,34 @@ const handleClearCart = async () => {
                     type="text"
                     className="form-control bg-light border-start-0"
                     placeholder="اكتب اسم المنتج أو القسم..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    value={modalSearch}
+                    onChange={(e) => setModalSearch(e.target.value)}
                     autoFocus
                   />
                 </div>
                 <div className="d-flex flex-column gap-2 overflow-auto" style={{ maxHeight: '300px' }}>
-                  {products
-                    .filter(p => !searchQuery || p.name.includes(searchQuery) || p.category.includes(searchQuery))
-                    .map(p => (
-                      <div key={p.id} className="d-flex align-items-center justify-content-between p-2 rounded-2 cursor-pointer border-bottom" onClick={() => handleSelectProduct(p.id)}>
-                        <div className="d-flex align-items-center gap-3">
-                          <img src={p.image} alt={p.name} style={{ width: '45px', height: '45px', objectFit: 'cover', borderRadius: '6px' }} />
-                          <div>
-                            <div className="fw-bold text-dark">{p.name}</div>
-                            <span className="text-muted small">{p.category}</span>
-                          </div>
-                        </div>
-                        <span className="fw-bold text-secondary">{p.price} ج.م</span>
+                  {searchResultsLoading && (
+                    <div className="d-flex justify-content-center py-3">
+                      <div className="spinner-border spinner-border-sm text-primary" role="status">
+                        <span className="visually-hidden">جاري البحث...</span>
                       </div>
-                    ))}
+                    </div>
+                  )}
+                  {!searchResultsLoading && searchResults.length === 0 && modalSearch && (
+                    <div className="text-center py-3 text-muted small">لا توجد نتائج مطابقة</div>
+                  )}
+                  {searchResults.map(p => (
+                    <div key={p.id} className="d-flex align-items-center justify-content-between p-2 rounded-2 cursor-pointer border-bottom" onClick={() => handleSelectProduct(p.id)}>
+                      <div className="d-flex align-items-center gap-3">
+                        <img src={p.image} alt={p.name} style={{ width: '45px', height: '45px', objectFit: 'cover', borderRadius: '6px' }} />
+                        <div>
+                          <div className="fw-bold text-dark">{p.name}</div>
+                          <span className="text-muted small">{p.category?.name || p.category || ''}</span>
+                        </div>
+                      </div>
+                      <span className="fw-bold text-secondary">{p.price} ج.م</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

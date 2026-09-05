@@ -1,16 +1,40 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import productApi from '../services/productApi';
 import ProductCard from './ProductCard';
 
-export default function OffersView({ 
-  products, 
-  onSelectProduct, 
-  onAddToCart, 
-  wishlist, 
+export default function OffersView({
+  onSelectProduct,
+  onAddToCart,
+  wishlist,
   onToggleWishlist,
   onShowToast,
-  onNavigate 
+  onNavigate
 }) {
-  const discountedProducts = products.filter(p => p.originalPrice && p.originalPrice > p.price);
+  const [discountedProducts, setDiscountedProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    productApi
+      .fetchProducts({ page: 1, limit: 12 })
+      .then((result) => {
+        if (!active) return;
+        const discounted = (result.products || []).filter(
+          (p) => p.originalPrice && p.originalPrice > p.price
+        );
+        setDiscountedProducts(discounted);
+      })
+      .catch(() => {
+        if (active) setError('تعذر تحميل العروض');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const copyCoupon = (code) => {
     navigator.clipboard?.writeText(code);
@@ -39,7 +63,7 @@ export default function OffersView({
                   <span className="text-muted small d-block">كود الخصم 15%:</span>
                   <span className="fw-bold text-dark font-monospace">SORUR15</span>
                 </div>
-                <button 
+                <button
                   className="btn btn-sm btn-outline-dark"
                   onClick={() => copyCoupon('SORUR15')}
                 >
@@ -52,7 +76,7 @@ export default function OffersView({
                   <span className="text-muted small d-block">كود الترحيب 10%:</span>
                   <span className="fw-bold text-dark font-monospace">WELCOME10</span>
                 </div>
-                <button 
+                <button
                   className="btn btn-sm btn-outline-dark"
                   onClick={() => copyCoupon('WELCOME10')}
                 >
@@ -69,7 +93,7 @@ export default function OffersView({
               </span>
               <h4 className="fw-bold text-dark mb-1">شحن مجاني</h4>
               <p className="text-muted small mb-3">للطلبات الأكثر من ٥٠٠ ج.م</p>
-              <button 
+              <button
                 className="btn-sorur-primary w-100 py-2 btn-sm"
                 onClick={() => onNavigate('shop')}
               >
@@ -82,24 +106,50 @@ export default function OffersView({
 
       {/* Discounted Products Grid */}
       <div className="mb-4">
-        <h2 className="fw-bold mb-3" style={{ fontSize: '1.6rem',color: "var(--color-primary) " }}>
+        <h2 className="fw-bold mb-3" style={{ fontSize: '1.6rem', color: 'var(--color-primary)' }}>
           منتجات عليها تخفيضات مباشرة
         </h2>
         <p className="text-muted small mb-4">أسعار خاصة ومخفضة بالجنيه المصري (ج.م)</p>
 
-        <div className="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3 g-md-4">
-          {discountedProducts.map(prod => (
-            <div className="col" key={prod.id}>
-              <ProductCard 
-                product={prod}
-                onSelectProduct={onSelectProduct}
-                onAddToCart={onAddToCart}
-                isWishlisted={wishlist.includes(prod.id)}
-                onToggleWishlist={onToggleWishlist}
-              />
+        {loading && (
+          <div className="d-flex justify-content-center py-5">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">جاري التحميل...</span>
             </div>
-          ))}
-        </div>
+          </div>
+        )}
+
+        {!loading && error && (
+          <div className="text-center py-5 bg-white rounded-3 border">
+            <span className="material-symbols-outlined text-danger mb-2" style={{ fontSize: '48px' }}>cloud_off</span>
+            <h4 className="fw-bold text-muted mb-2">تعذر تحميل العروض</h4>
+            <p className="text-muted small mb-0">{error}</p>
+          </div>
+        )}
+
+        {!loading && !error && discountedProducts.length === 0 && (
+          <div className="text-center py-5 bg-white rounded-3 border">
+            <span className="material-symbols-outlined text-muted mb-2" style={{ fontSize: '48px' }}>local_offer</span>
+            <h4 className="fw-bold text-muted mb-2">لا توجد عروض حالياً</h4>
+            <p className="text-muted small mb-0">تابعنا للحصول على أحدث التخفيضات</p>
+          </div>
+        )}
+
+        {!loading && !error && discountedProducts.length > 0 && (
+          <div className="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3 g-md-4">
+            {discountedProducts.map((prod) => (
+              <div className="col" key={prod.id}>
+                <ProductCard
+                  product={prod}
+                  onSelectProduct={onSelectProduct}
+                  onAddToCart={onAddToCart}
+                  isWishlisted={wishlist.includes(prod.id)}
+                  onToggleWishlist={onToggleWishlist}
+                />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

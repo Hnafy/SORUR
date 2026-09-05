@@ -108,13 +108,6 @@ export default function Login({ onNavigate, onShowToast }) {
                     إنشاء حساب جديد
                   </button>
                 </div>
-
-                <div className="mt-3 p-2 rounded-3 text-center small" style={{ backgroundColor: '#f8f1e7' }}>
-                  <span className="text-muted">حساب تجريبي:</span>
-                  <span className="fw-semibold text-dark dir-ltr ms-1">admin@sorur.com / admin123</span>
-                  <span className="mx-1">|</span>
-                  <span className="fw-semibold text-dark dir-ltr">customer@sorur.com / customer123</span>
-                </div>
               </form>
             </div>
           </div>
