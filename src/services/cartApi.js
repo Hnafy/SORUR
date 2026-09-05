@@ -1,38 +1,13 @@
 import api from './api';
-import { INITIAL_PRODUCTS } from '../data/mockData';
-
-const getLocalProduct = (productId) =>
-  INITIAL_PRODUCTS.find((product) => product.id === productId);
 
 const getRemoteProductId = (product) =>
-  product?.apiId || product?._id || product?.remoteId || null;
+  product?.apiId || product?._id || product?.remoteId || product?.id || null;
 
-const getRemoteProducts = async () => {
-  const response = await api.get('/ecommerce/products', {
-    params: { page: 1, limit: 100 },
-  });
-
-  return response?.data?.products || response?.products || [];
-};
-
-const resolveProductId = async (product) => {
-  const directId = getRemoteProductId(product);
-  if (directId) return directId;
-
-  const remoteProducts = await getRemoteProducts();
-  if (!remoteProducts.length) {
-    throw new Error('No products were returned by FreeAPI.');
-  }
-
-  // المنتجات المحلية عندها prod-001, prod-002...
-  // نستخدم رقم المنتج للوصول للمنتج المقابل من FreeAPI.
-  const numericPart = String(product.id).match(/\d+/);
-  const index = numericPart ? Number(numericPart[0]) - 1 : 0;
-  const remoteProduct = remoteProducts[index] || remoteProducts[0];
-  const remoteId = remoteProduct?._id || remoteProduct?.id;
+const resolveProductId = (product) => {
+  const remoteId = getRemoteProductId(product);
 
   if (!remoteId) {
-    throw new Error('The selected FreeAPI product has no valid ID.');
+    throw new Error('Product ID is missing or invalid.');
   }
 
   return remoteId;
@@ -63,21 +38,18 @@ const getCart = async () => {
   return getCartItems(response).map(normalizeCartItem);
 };
 
-const getStock = (product) => {
-  const localProduct = getLocalProduct(product?.id);
-  return Number(product?.stock || localProduct?.stock || 0);
-};
+const getStock = (product) => Number(product?.stock || 0);
 
 const cartApi = {
   getCart,
 
   async addItem({ product, quantity = 1 }) {
     const stock = getStock(product);
-    if (quantity < 1 || quantity > stock) {
+    if (quantity < 1 || (stock > 0 && quantity > stock)) {
       throw new Error(`Only ${stock} item(s) are available.`);
     }
 
-    const productId = await resolveProductId(product);
+    const productId = resolveProductId(product);
     await api.post(`/ecommerce/cart/item/${productId}`, { quantity });
     return getCart();
   },
