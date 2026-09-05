@@ -13,6 +13,7 @@ export default function CartCheckout({
   onNavigate,
   busyItem,
   cartError,
+  onProceedToCheckout,
 }) {
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);
@@ -429,14 +430,19 @@ export default function CartCheckout({
               </div>
 
               <button
-                className="btn btn-primary w-100"
-                disabled
-              >
-                Proceed to Checkout
-              </button>
+  className="btn btn-primary w-100"
+  onClick={onProceedToCheckout}
+  disabled={
+    Boolean(busyItem) ||
+    cartItems.length === 0
+  }
+>
+  Proceed to Checkout
+</button>
+
 
               <small className="d-block text-muted text-center mt-2">
-                Checkout will be enabled in the next task.
+                Address → Review → Payment
               </small>
             </div>
           </aside>

@@ -20,6 +20,8 @@ import CustomerProfile from './pages/profile/CustomerProfile';
 import CustomerAddresses from './pages/addresses/CustomerAddresses';
 import CustomerOrders from './pages/orders/CustomerOrders';
 import CustomerOrderDetail from './pages/orders/CustomerOrderDetail';
+import CheckoutPage from './pages/checkout/CheckoutPage';
+import OrderConfirmation from './pages/checkout/OrderConfirmation';
 import AdminOverview from './pages/admin/AdminOverview';
 import AdminProducts from './pages/admin/AdminProducts';
 import AdminCategories from './pages/admin/AdminCategories';
@@ -37,6 +39,8 @@ const VIEW_TO_PATH = {
   'customer-profile': '/customer/profile',
   'customer-addresses': '/customer/addresses',
   'customer-orders': '/customer/orders',
+  'checkout': '/checkout',
+  'order-confirmation': '/order-confirmation',
   "admin": '/admin',
   'admin-products': '/admin/products',
   'admin-categories': '/admin/categories',
@@ -57,6 +61,8 @@ function pathToViewKey(pathname) {
   if (p.startsWith('/customer/profile')) return 'customer-profile';
   if (p.startsWith('/customer/addresses')) return 'customer-addresses';
   if (p.startsWith('/customer/orders')) return 'customer-orders';
+  if (p === '/checkout') return 'checkout';
+  if (p === '/order-confirmation') return 'order-confirmation'; 
   if (p.startsWith('/admin/products')) return 'admin-products';
   if (p.startsWith('/admin/categories')) return 'admin-categories';
   if (p.startsWith('/admin/coupons')) return 'admin-coupons';
@@ -466,9 +472,26 @@ const handleClearCart = async () => {
               onNavigate={navigateTo}
               busyItem={cartBusyKey}
               cartError={cartError}
+              onProceedToCheckout={() => navigate('/checkout')}
             />
             }
           />
+                    <Route
+            path="/checkout"
+            element={
+              <CheckoutPage
+                cartItems={cart}
+                onClearCart={handleClearCart}
+                onShowToast={showToast}
+              />
+            }
+          />
+
+          <Route
+            path="/order-confirmation"
+            element={<OrderConfirmation />}
+          />
+
           <Route
             path="/offers"
             element={
