@@ -22,7 +22,6 @@ export const clearTokens = () => {
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_BASE_URL || 'https://api.freeapi.app/api/v1',
-  headers: { 'Content-Type': 'application/json' },
 });
 
 api.interceptors.request.use((config) => {
