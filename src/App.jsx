@@ -13,7 +13,6 @@ import StoreCatalog from './components/StoreCatalog';
 import OffersView from './components/OffersView';
 import ToastNotification from './components/ToastNotification';
 import cartApi from './services/cartApi';
-import couponApi from './services/couponApi';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import CustomerProfile from './pages/profile/CustomerProfile';
@@ -85,32 +84,19 @@ export default function App() {
   const [searchResults, setSearchResults] = useState([]);
   const [searchResultsLoading, setSearchResultsLoading] = useState(false);
 
-  const [cart, setCart] = useState(() => {
-    const saved = localStorage.getItem('sorur_cart');
-    return saved ? JSON.parse(saved) : [
-      {
-        id: '',
-        name: '',
-        price: 0,
-        color: '',
-        quantity: 0,
-        image: ''
-      }
-    ];
-  });
-
+  // The cart is stored on the server (FreeAPI), not in localStorage.
+  const [cart, setCart] = useState([]);
   const [wishlist, setWishlist] = useState(() => {
     const saved = localStorage.getItem('sorur_wishlist');
     return saved ? JSON.parse(saved) : ['prod-001', 'prod-005'];
   });
 
-const [modalSearch, setModalSearch] = useState('');
-const [searchModalOpen, setSearchModalOpen] = useState(false);
-const [toastMessage, setToastMessage] = useState('');
-const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
-const [cartBusyKey, setCartBusyKey] = useState(null);
-const [cartError, setCartError] = useState('');
-
+  const [modalSearch, setModalSearch] = useState('');
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
+  const [cartBusyKey, setCartBusyKey] = useState(null);
+  const [cartError, setCartError] = useState('');
 
   // Keep selectedProductId in sync with the URL for deep links / refresh.
   useEffect(() => {
@@ -125,8 +111,31 @@ const [cartError, setCartError] = useState('');
   };
 
   // Local storage synchronization
-  useEffect(() => localStorage.setItem('sorur_cart', JSON.stringify(cart)), [cart]);
   useEffect(() => localStorage.setItem('sorur_wishlist', JSON.stringify(wishlist)), [wishlist]);
+
+  // Load the cart only after the user has authenticated.
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setCart([]);
+      setCartError('');
+      return undefined;
+    }
+
+    let active = true;
+
+    cartApi
+      .getCart()
+      .then((serverCart) => {
+        if (active) setCart(serverCart);
+      })
+      .catch((error) => {
+        if (active) setCartError(error.message);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated]);
 
   // Fetch best sellers for the homepage
   useEffect(() => {
@@ -167,18 +176,6 @@ const [cartError, setCartError] = useState('');
     return () => clearTimeout(t);
   }, [modalSearch, searchModalOpen]);
 
-useEffect(() => {
-  cartApi
-    .getCart()
-    .then((storedCart) => {
-      setCart(storedCart);
-    })
-    .catch((error) => {
-      setCartError(error.message);
-    });
-}, []);
-
-
   // Toast auto-clear
   useEffect(() => {
     if (toastMessage) {
@@ -189,145 +186,90 @@ useEffect(() => {
 
   const showToast = (msg) => setToastMessage(msg);
 
-  // Cart operations
- // Cart operations
+ const handleAddToCart = async (product, quantity = 1, color = '') => {
+  if (!isAuthenticated || cartBusyKey) return;
 
-// Adds a product to the cart and checks the available stock first.
-const handleAddToCart = async (
-  product,
-  quantity = 1,
-  color = ''
-) => {
+  const key = `${product.id}:${color || 'Default'}`;
+  const stock = Number(product.stock || 0);
+
+  if (quantity < 1 || quantity > stock) {
+    const message = `Only ${stock} item(s) are available.`;
+    setCartError(message);
+    showToast(message);
+    return;
+  }
+
+  setCartBusyKey(key);
   setCartError('');
 
   try {
-    const updatedCart = await cartApi.addItem({
-      product,
-      quantity,
-      color,
-    });
-
-    setCart(updatedCart);
-
+    const nextCart = await cartApi.addItem({ product, quantity, color });
+    setCart(nextCart);
     showToast(`${product.name} was added to your cart.`);
   } catch (error) {
     setCartError(error.message);
     showToast(error.message);
-  }
-};
-
-// Updates the quantity with an optimistic UI update.
-const handleUpdateCartQuantity = async (
-  item,
-  newQuantity
-) => {
-  const itemKey = `${item.id}:${item.color}`;
-
-  // Do not send another request while an item is busy.
-  if (cartBusyKey) {
-    return;
-  }
-
-  // Prevent quantities outside the valid range.
-  if (newQuantity < 1 || newQuantity > item.stock) {
-    return;
-  }
-
-  const previousCart = cart;
-
-  // Disable this item while the request is running.
-  setCartBusyKey(itemKey);
-  setCartError('');
-
-  // Optimistic update: update the UI immediately.
-  setCart((currentCart) =>
-    currentCart.map((cartItem) =>
-      cartItem.id === item.id &&
-      cartItem.color === item.color
-        ? {
-            ...cartItem,
-            quantity: newQuantity,
-          }
-        : cartItem
-    )
-  );
-
-  try {
-    const updatedCart = await cartApi.updateItem({
-      productId: item.id,
-      color: item.color,
-      quantity: newQuantity,
-    });
-
-    setCart(updatedCart);
-  } catch (error) {
-    // Roll back if the API request fails.
-    setCart(previousCart);
-    setCartError(error.message);
-    showToast(error.message);
   } finally {
     setCartBusyKey(null);
   }
 };
 
-// Removes one item with an optimistic UI update.
-const handleRemoveFromCart = async (item) => {
-  const itemKey = `${item.id}:${item.color}`;
+  const handleUpdateCartQuantity = async (item, newQty) => {
+    const key = `${item.id}:${item.color}`;
+    if (newQty <= 0) {
+      await handleRemoveFromCart(item);
+      return;
+    }
+    if (newQty > item.stock || cartBusyKey) return;
+    const previousCart = cart;
+    setCartBusyKey(key);
+    setCartError('');
+    setCart(prev => prev.map(entry => entry.id === item.id && entry.color === item.color ? { ...entry, quantity: newQty } : entry));
+    try {
+      setCart(await cartApi.updateItem({ productId: item.apiId || item.id, quantity: newQty }));
+    } catch (error) {
+      setCart(previousCart);
+      setCartError(error.message);
+      showToast(error.message);
+    } finally {
+      setCartBusyKey(null);
+    }
+  };
 
-  if (cartBusyKey) {
-    return;
-  }
+  const handleRemoveFromCart = async (item) => {
+    const key = `${item.id}:${item.color}`;
+    if (cartBusyKey) return;
+    const previousCart = cart;
+    setCartBusyKey(key);
+    setCart(prev => prev.filter(entry => !(entry.id === item.id && entry.color === item.color)));
+    try {
+      setCart(await cartApi.removeItem({ productId: item.apiId || item.id }));
+      showToast(`${item.name} was removed from your cart.`);
+    } catch (error) {
+      setCart(previousCart);
+      setCartError(error.message);
+    } finally {
+      setCartBusyKey(null);
+    }
+  };
 
-  const previousCart = cart;
-
-  setCartBusyKey(itemKey);
-  setCartError('');
-
-  setCart((currentCart) =>
-    currentCart.filter(
-      (cartItem) =>
-        !(
-          cartItem.id === item.id &&
-          cartItem.color === item.color
-        )
-    )
-  );
-
-  try {
-    const updatedCart = await cartApi.removeItem({
-      productId: item.id,
-      color: item.color,
-    });
-
-    setCart(updatedCart);
-    showToast(`${item.name} was removed from your cart.`);
-  } catch (error) {
-    setCart(previousCart);
-    setCartError(error.message);
-    showToast(error.message);
-  } finally {
-    setCartBusyKey(null);
-  }
-};
 const handleClearCart = async () => {
-  if (cartBusyKey) {
-    return;
-  }
+  if (cartBusyKey) return;
 
   const previousCart = cart;
-
+  setCartBusyKey('clear');
   setCartError('');
   setCart([]);
 
   try {
-    const updatedCart = await cartApi.clearCart();
-
-    setCart(updatedCart);
+    await cartApi.clearCart();
     showToast('Your cart has been cleared.');
   } catch (error) {
     setCart(previousCart);
     setCartError(error.message);
     showToast(error.message);
+  } finally {
+    setCartBusyKey(null);
   }
 };
 
@@ -355,15 +297,14 @@ const handleClearCart = async () => {
   // Layout with global Navbar + Footer for the public store and customer areas.
   const MainLayout = () => (
     <>
-         <Navbar
-           currentView={currentView}
-           onNavigate={navigateTo}
-           cartCount={totalCartCount}
-           onCartClick={() => setCartDrawerOpen(true)}
-           wishlistCount={wishlist.length}
-           onSearchClick={() => { setModalSearch(''); setSearchModalOpen(true); }}
-        />
-
+      <Navbar
+        currentView={currentView}
+        onNavigate={navigateTo}
+        cartCount={totalCartCount}
+        onCartClick={() => setCartDrawerOpen(true)}
+        wishlistCount={wishlist.length}
+        onSearchClick={() => { setModalSearch(''); setSearchModalOpen(true); }}
+      />
       <main className="main-content">
         <Outlet />
       </main>
@@ -531,63 +472,21 @@ const handleClearCart = async () => {
       </Routes>
 
       <ToastNotification message={toastMessage} onClose={() => setToastMessage('')} />
-        <CartDrawer
-  open={cartDrawerOpen}
-  items={cart}
-  subtotal={cart.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  )}
-  tax={Number(
-    (
-      cart.reduce(
-        (sum, item) => sum + item.price * item.quantity,
-        0
-      ) * 0.14
-    ).toFixed(2)
-  )}
-  shipping={(() => {
-    const subtotal = cart.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0
-    );
 
-    if (subtotal === 0) {
-      return 0;
-    }
-
-    return subtotal >= 1000 ? 0 : 60;
-  })()}
-  total={(() => {
-    const subtotal = cart.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0
-    );
-
-    const tax = Number(
-      (subtotal * 0.14).toFixed(2)
-    );
-
-    const shipping =
-      subtotal === 0
-        ? 0
-        : subtotal >= 1000
-          ? 0
-          : 60;
-
-    return subtotal + tax + shipping;
-  })()}
-  onClose={() => setCartDrawerOpen(false)}
-  onUpdateQuantity={handleUpdateCartQuantity}
-  onRemoveItem={handleRemoveFromCart}
-  onClearCart={handleClearCart}
-  onViewCart={() => {
-    setCartDrawerOpen(false);
-    navigateTo('cart');
-  }}
-  busyItem={cartBusyKey}
-/>
-
+      <CartDrawer
+        open={cartDrawerOpen}
+        items={cart}
+        subtotal={cart.reduce((sum, item) => sum + item.price * item.quantity, 0)}
+        tax={Number((cart.reduce((sum, item) => sum + item.price * item.quantity, 0) * 0.14).toFixed(2))}
+        shipping={cart.reduce((sum, item) => sum + item.price * item.quantity, 0) >= 1000 ? 0 : cart.length ? 60 : 0}
+        total={(() => { const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0); return subtotal + Number((subtotal * 0.14).toFixed(2)) + (subtotal >= 1000 ? 0 : subtotal ? 60 : 0); })()}
+        onClose={() => setCartDrawerOpen(false)}
+        onUpdateQuantity={handleUpdateCartQuantity}
+        onRemoveItem={handleRemoveFromCart}
+        onClearCart={handleClearCart}
+        onViewCart={() => { setCartDrawerOpen(false); navigateTo('cart'); }}
+        busyItem={cartBusyKey}
+      />
 
       {searchModalOpen && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1060 }} tabIndex="-1">
