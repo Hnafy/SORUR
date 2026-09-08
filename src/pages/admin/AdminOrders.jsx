@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import mockApi from '../../services/mockApi';
+import { orderApi } from '../../services/ecommerceApi';
 import { useAuth } from '../../context/AuthContext';
 import AdminLayout from './AdminLayout';
 
@@ -16,18 +16,13 @@ export default function AdminOrders({ onNavigate, onShowToast }) {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
 
-  const tokenHeaders = () => {
-    const raw = localStorage.getItem('sorur_tokens');
-    return raw ? { Authorization: `Bearer ${JSON.parse(raw).accessToken}` } : {};
-  };
-
   const load = async (status = filter) => {
     setLoading(true);
     try {
       const query = { limit: 100 };
       if (status) query.status = status;
-      const res = await mockApi.order.getOrderListAdmin(query, tokenHeaders());
-      setOrders(res.data.orders || []);
+      const res = await orderApi.getOrderListAdmin(query);
+      setOrders(res?.data?.orders || res?.orders || []);
     } catch {
       /* guarded */
     } finally {
@@ -47,7 +42,7 @@ export default function AdminOrders({ onNavigate, onShowToast }) {
 
   const handleStatus = async (o, status) => {
     try {
-      const res = await mockApi.order.updateOrderStatus(o._id, { status }, tokenHeaders());
+      const res = await orderApi.updateOrderStatus(o._id, status);
       if (res.success) {
         onShowToast?.(`تم تحديث حالة الطلب #${o._id} إلى ${STATUS_LABEL[status].label}`);
         load();

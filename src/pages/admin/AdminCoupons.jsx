@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import couponApi from '../../services/couponApi';
+import { couponApi } from '../../services/ecommerceApi';
 import { useAuth } from '../../context/AuthContext';
 import AdminLayout from './AdminLayout';
 

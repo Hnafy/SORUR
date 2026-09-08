@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, Outlet, useNavigate, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
-import productApi from './services/productApi';
+import { productApi, cartApi } from './services/ecommerceApi';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import HeroSection from './components/HeroSection';
@@ -12,7 +12,8 @@ import CartDrawer from './components/CartDrawer';
 import StoreCatalog from './components/StoreCatalog';
 import OffersView from './components/OffersView';
 import ToastNotification from './components/ToastNotification';
-import cartApi from './services/cartApi';
+import ChatbotContainer from './components/chatbot/ChatbotContainer';
+
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import CustomerProfile from './pages/profile/CustomerProfile';
@@ -27,6 +28,46 @@ import AdminCategories from './pages/admin/AdminCategories';
 import AdminCoupons from './pages/admin/AdminCoupons';
 import AdminOrders from './pages/admin/AdminOrders';
 import NotFound from './pages/NotFound';
+// Layout with global Navbar + Footer for the public store and customer areas.
+// Defined at module scope so its identity stays stable across App re-renders;
+// an inline definition would cause React Router to remount the whole subtree
+// (refetching products/categories) on every parent state change.
+function MainLayout({ currentView, onNavigate, cartCount, onCartClick, wishlistCount, onSearchClick, onShowToast }) {
+  return (
+    <>
+      <Navbar
+        currentView={currentView}
+        onNavigate={onNavigate}
+        cartCount={cartCount}
+        onCartClick={onCartClick}
+        wishlistCount={wishlistCount}
+        onSearchClick={onSearchClick}
+      />
+      <main className="main-content">
+        <Outlet />
+      </main>
+      <Footer onNavigate={onNavigate} onShowToast={onShowToast} />
+    </>
+  );
+}
+
+// Route guards (module scope for stable identity).
+function RequireAuth({ isAuthenticated, from }) {
+  return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace state={{ from }} />;
+}
+
+function RequireAdmin({ isAuthenticated, isAdmin, from }) {
+  if (!isAuthenticated) return <Navigate to="/login" replace state={{ from }} />;
+  if (!isAdmin) return <Navigate to="/customer/profile" replace />;
+  return <Outlet />;
+}
+
+// Order detail wrapper that reads the :orderId param.
+function OrderDetailRoute({ onNavigate, onShowToast }) {
+  const { orderId } = useParams();
+  return <CustomerOrderDetail orderId={orderId} onNavigate={onNavigate} onShowToast={onShowToast} />;
+}
+
 // ahmed
 const VIEW_TO_PATH = {
   "home": '/',
@@ -294,40 +335,6 @@ const handleClearCart = async () => {
   const totalCartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const currentView = pathToViewKey(location.pathname);
 
-  // Layout with global Navbar + Footer for the public store and customer areas.
-  const MainLayout = () => (
-    <>
-      <Navbar
-        currentView={currentView}
-        onNavigate={navigateTo}
-        cartCount={totalCartCount}
-        onCartClick={() => setCartDrawerOpen(true)}
-        wishlistCount={wishlist.length}
-        onSearchClick={() => { setModalSearch(''); setSearchModalOpen(true); }}
-      />
-      <main className="main-content">
-        <Outlet />
-      </main>
-      <Footer onNavigate={navigateTo} onShowToast={showToast} />
-    </>
-  );
-
-  // Route guards
-  const RequireAuth = () =>
-    isAuthenticated ? <Outlet /> : <Navigate to="/login" replace state={{ from: location.pathname }} />;
-
-  const RequireAdmin = () => {
-    if (!isAuthenticated) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
-    if (!isAdmin) return <Navigate to="/customer/profile" replace />;
-    return <Outlet />;
-  };
-
-  // Order detail wrapper that reads the :orderId param.
-  const OrderDetailRoute = () => {
-    const { orderId } = useParams();
-    return <CustomerOrderDetail orderId={orderId} onNavigate={navigateTo} onShowToast={showToast} />;
-  };
-
   if (loading) {
     return (
       <div className="app-wrapper">
@@ -342,7 +349,19 @@ const handleClearCart = async () => {
     <div className="app-wrapper">
       <Routes>
         {/* global navbar/footer */}
-        <Route element={<MainLayout />}>
+        <Route
+          element={
+            <MainLayout
+              currentView={currentView}
+              onNavigate={navigateTo}
+              cartCount={totalCartCount}
+              onCartClick={() => setCartDrawerOpen(true)}
+              wishlistCount={wishlist.length}
+              onSearchClick={() => { setModalSearch(''); setSearchModalOpen(true); }}
+              onShowToast={showToast}
+            />
+          }
+        >
           <Route
             path="/"
             element={
@@ -451,18 +470,18 @@ const handleClearCart = async () => {
           <Route path="/register" element={<Register onNavigate={navigateTo} onShowToast={showToast} />} />
 
           {/* Customer area (requires auth) */}
-          <Route element={<RequireAuth />}>
+            <Route element={<RequireAuth isAuthenticated={isAuthenticated} from={location.pathname} />}>
             <Route path="/customer/profile" element={<CustomerProfile onNavigate={navigateTo} onShowToast={showToast} />} />
             <Route path="/customer/addresses" element={<CustomerAddresses onNavigate={navigateTo} onShowToast={showToast} />} />
             <Route path="/customer/orders" element={<CustomerOrders onNavigate={navigateTo} onShowToast={showToast} />} />
-            <Route path="/customer/orders/:orderId" element={<OrderDetailRoute />} />
+            <Route path="/customer/orders/:orderId" element={<OrderDetailRoute onNavigate={navigateTo} onShowToast={showToast} />} />
           </Route>
 
           <Route path="*" element={<NotFound onNavigate={navigateTo} />} />
         </Route>
 
         {/* Admin area (requires admin, own sidebar layout, no global navbar/footer) */}
-        <Route element={<RequireAdmin />}>
+        <Route element={<RequireAdmin isAuthenticated={isAuthenticated} isAdmin={isAdmin} from={location.pathname} />}>
           <Route path="/admin" element={<AdminOverview onNavigate={navigateTo} onShowToast={showToast} />} />
           <Route path="/admin/products" element={<AdminProducts onNavigate={navigateTo} onShowToast={showToast} />} />
           <Route path="/admin/categories" element={<AdminCategories onNavigate={navigateTo} onShowToast={showToast} />} />
@@ -539,6 +558,8 @@ const handleClearCart = async () => {
           </div>
         </div>
       )}
+
+      <ChatbotContainer />
     </div>
   );
 }

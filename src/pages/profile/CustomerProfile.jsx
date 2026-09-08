@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import mockApi from '../../services/mockApi';
+import { profileApi } from '../../services/ecommerceApi';
 import { useAuth } from '../../context/AuthContext';
 import CustomerLayout from './CustomerLayout';
 
@@ -11,17 +11,12 @@ export default function CustomerProfile({ onNavigate, onShowToast }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ firstName: '', lastName: '', phoneNumber: '', countryCode: '+20' });
 
-  const tokenHeaders = () => {
-    const raw = localStorage.getItem('sorur_tokens');
-    return raw ? { Authorization: `Bearer ${JSON.parse(raw).accessToken}` } : {};
-  };
-
   useEffect(() => {
     let active = true;
     const load = async () => {
       setLoading(true);
       try {
-        const res = await mockApi.profile.getMyProfile(tokenHeaders());
+        const res = await profileApi.getMyProfile();
         if (active && res.success) {
           setProfile(res.data);
         }
@@ -51,10 +46,7 @@ export default function CustomerProfile({ onNavigate, onShowToast }) {
   setSaving(true);
 
   try {
-    const res = await mockApi.profile.updateMyProfile(
-      form,
-      tokenHeaders()
-    );
+    const res = await profileApi.updateMyProfile(form);
 
     if (res.success) {
       setProfile(res.data);

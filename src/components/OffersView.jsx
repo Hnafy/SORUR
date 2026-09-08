@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import productApi from '../services/productApi';
+import { productApi } from '../services/ecommerceApi';
 import ProductCard from './ProductCard';
 
 export default function OffersView({

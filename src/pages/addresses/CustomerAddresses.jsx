@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
+import { addressApi } from '../../services/ecommerceApi';
 import { useAuth } from '../../context/AuthContext';
 import CustomerLayout from '../profile/CustomerLayout';
 
@@ -126,7 +127,7 @@ const handleSave = async (e) => {
 
   const handleDelete = async (id) => {
     try {
-      const res = await mockApi.address.deleteAddress(id, tokenHeaders());
+      const res = await addressApi.deleteAddress(id);
       if (res.success) onShowToast?.('تم حذف العنوان');
       load();
     } catch (err) {
@@ -136,7 +137,7 @@ const handleSave = async (e) => {
 
   const handleSetDefault = async (id) => {
     try {
-      const res = await mockApi.address.setDefaultAddress(id, tokenHeaders());
+      const res = await addressApi.setDefaultAddress(id);
       if (res.success) {
         setDefaultId(res.data.defaultAddressId);
         onShowToast?.('تم تعيين العنوان الافتراضي');

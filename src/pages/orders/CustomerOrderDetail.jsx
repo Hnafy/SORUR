@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import mockApi from '../../services/mockApi';
+import { orderApi } from '../../services/ecommerceApi';
 import { useAuth } from '../../context/AuthContext';
 import CustomerLayout from '../profile/CustomerLayout';
 
@@ -14,17 +14,12 @@ export default function CustomerOrderDetail({ orderId, onNavigate, onShowToast }
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const tokenHeaders = () => {
-    const raw = localStorage.getItem('sorur_tokens');
-    return raw ? { Authorization: `Bearer ${JSON.parse(raw).accessToken}` } : {};
-  };
-
   useEffect(() => {
     let active = true;
     const load = async () => {
       setLoading(true);
       try {
-        const res = await mockApi.order.getOrderById(orderId, tokenHeaders());
+        const res = await orderApi.getOrderById(orderId);
         if (active && res.success) setDetail(res.data);
       } catch {
         /* guarded */

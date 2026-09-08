@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import mockApi from '../../services/mockApi';
+import { orderApi } from '../../services/ecommerceApi';
 import { useAuth } from '../../context/AuthContext';
 import CustomerLayout from '../profile/CustomerLayout';
 
@@ -15,17 +15,12 @@ export default function CustomerOrders({ onNavigate, onShowToast }) {
   const [pagination, setPagination] = useState({});
   const [loading, setLoading] = useState(true);
 
-  const tokenHeaders = () => {
-    const raw = localStorage.getItem('sorur_tokens');
-    return raw ? { Authorization: `Bearer ${JSON.parse(raw).accessToken}` } : {};
-  };
-
   useEffect(() => {
     let active = true;
     const load = async () => {
       setLoading(true);
       try {
-        const res = await mockApi.order.getMyOrders({ page: 1, limit: 20 }, tokenHeaders());
+        const res = await orderApi.getMyOrders({ page: 1, limit: 20 });
         if (active && res.success) {
           setOrders(res.data.orders || []);
           setPagination(res.data);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import productApi from '../services/productApi';
+import { productApi } from '../services/ecommerceApi';
 import ProductCard from './ProductCard';
 
 const PAGE_SIZE = 12;

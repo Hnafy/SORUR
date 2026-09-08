@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import mockApi from '../../services/mockApi';
+import { orderApi, productApi, couponApi, categoryApi } from '../../services/ecommerceApi';
 import { useAuth } from '../../context/AuthContext';
 import AdminLayout from './AdminLayout';
 
@@ -8,28 +8,23 @@ export default function AdminOverview({ onNavigate, onShowToast }) {
   const [stats, setStats] = useState({ orders: [], products: [], coupons: [], categories: [] });
   const [loading, setLoading] = useState(true);
 
-  const tokenHeaders = () => {
-    const raw = localStorage.getItem('sorur_tokens');
-    return raw ? { Authorization: `Bearer ${JSON.parse(raw).accessToken}` } : {};
-  };
-
   useEffect(() => {
     let active = true;
     const load = async () => {
       setLoading(true);
       try {
         const [orders, products, coupons, categories] = await Promise.all([
-          mockApi.order.getOrderListAdmin({ limit: 100 }, tokenHeaders()),
-          mockApi.product.getAllProducts({ limit: 100 }),
-          mockApi.coupon.getAllCoupons({ limit: 100 }, tokenHeaders()),
-          mockApi.category.getAllCategories({ limit: 100 }),
+          orderApi.getOrderListAdmin({ limit: 100 }),
+          productApi.fetchProducts({ limit: 100 }),
+          couponApi.getAdminCoupons(),
+          categoryApi.fetchCategories({ limit: 100 }),
         ]);
         if (!active) return;
         setStats({
-          orders: orders.data.orders || [],
-          products: products.data.products || [],
-          coupons: coupons.data.coupons || [],
-          categories: categories.data.categories || [],
+          orders: orders?.data?.orders || orders?.orders || [],
+          products: products?.products || products?.data?.products || [],
+          coupons: coupons || [],
+          categories: categories?.categories || categories?.data?.categories || [],
         });
       } catch {
         /* guarded */

@@ -4,10 +4,11 @@ import React, {
   useState,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
-import checkoutApi, {
+import {
+  checkoutApi,
   createMockPaymentResult,
   loadRazorpayScript,
-} from '../../services/checkoutApi';
+} from '../../services/ecommerceApi';
 
 const EMPTY_ADDRESS = {
   addressLine1: '',

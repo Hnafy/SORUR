@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import couponApi from '../services/couponApi';
+import { couponApi } from '../services/ecommerceApi';
 
 const money = (value) => {
   return `${Number(value).toFixed(2)} EGP`;
