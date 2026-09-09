@@ -1,8 +1,5 @@
 import api from './api';
 
-// ==================================================================
-// Normalization helpers
-// ==================================================================
 const normalizeImage = (img) => {
   if (!img) return null;
   if (typeof img === 'string') return img;
@@ -40,8 +37,6 @@ export const normalizeProduct = (product) => {
   };
 };
 
-// Preserves raw server shape needed by the admin editor: sub-images keep their
-// _id so they can be removed individually via removeSubImage.
 export const normalizeProductAdmin = (product) => {
   if (!product) return null;
   const mainImageUrl =
@@ -151,9 +146,6 @@ const getCartItems = (response) =>
 
 const getCartStock = (product) => Number(product?.stock || 0);
 
-// ==================================================================
-// PROFILE  —  /api/v1/ecommerce/profile
-// ==================================================================
 export const profileApi = {
   async getMyProfile() {
     return api.get('/ecommerce/profile');
@@ -168,9 +160,6 @@ export const profileApi = {
   },
 };
 
-// ==================================================================
-// ADDRESSES  —  /api/v1/ecommerce/addresses
-// ==================================================================
 export const addressApi = {
   async getAllAddresses({ page = 1, limit = 50 } = {}) {
     const res = await api.get('/ecommerce/addresses', { params: { page, limit } });
@@ -203,9 +192,6 @@ export const addressApi = {
   },
 };
 
-// ==================================================================
-// CATEGORIES  —  /api/v1/ecommerce/categories
-// ==================================================================
 export const categoryApi = {
   async fetchCategories({ page = 1, limit = 50, search = '' } = {}) {
     const params = { page, limit };
@@ -239,9 +225,6 @@ export const categoryApi = {
   },
 };
 
-// ==================================================================
-// COUPONS  —  /api/v1/ecommerce/coupons
-// ==================================================================
 export const couponApi = {
   async getAvailableCoupons() {
     const response = await api.get('/ecommerce/coupons/customer/available', {
@@ -301,9 +284,6 @@ export const couponApi = {
   },
 };
 
-// ==================================================================
-// PRODUCTS  —  /api/v1/ecommerce/products
-// ==================================================================
 export const productApi = {
   async fetchCategories() {
     const res = await api.get('/ecommerce/categories');
@@ -336,7 +316,6 @@ export const productApi = {
     return normalizeProduct(product);
   },
 
-  // Admin list (richer shape for the admin table/edit form)
   async fetchAdminProducts({ page = 1, limit = 10 } = {}) {
     const res = await api.get('/ecommerce/products', { params: { page, limit } });
     const data = res?.data || res || {};
@@ -351,7 +330,6 @@ export const productApi = {
     };
   },
 
-  // Flat category list for the product form dropdown
   async fetchAllCategories({ limit = 100 } = {}) {
     const res = await api.get('/ecommerce/categories', { params: { page: 1, limit } });
     const data = res?.data || res || {};
@@ -361,7 +339,6 @@ export const productApi = {
     }));
   },
 
-  // Multipart create (mainImage File required by FreeAPI)
   async createProduct(payload, onUploadProgress) {
     const res = await api.post('/ecommerce/products', buildProductFormData(payload), {
       headers: { 'Content-Type': 'multipart/form-data' },
@@ -370,9 +347,6 @@ export const productApi = {
     return normalizeProductAdmin(res?.data || res || null);
   },
 
-  // Multipart update. ALWAYS include category (FreeAPI 422 otherwise). New
-  // sub-images are appended to existing ones; mainImage only replaced if a File
-  // is present.
   async updateProduct(id, payload, onUploadProgress) {
     const res = await api.patch(`/ecommerce/products/${id}`, buildProductFormData(payload), {
       headers: { 'Content-Type': 'multipart/form-data' },
@@ -392,9 +366,6 @@ export const productApi = {
   },
 };
 
-// ==================================================================
-// ORDERS  —  /api/v1/ecommerce/orders
-// ==================================================================
 export const orderApi = {
   async getMyOrders({ page = 1, limit = 20, status } = {}) {
     const params = { page, limit };
@@ -421,9 +392,6 @@ export const orderApi = {
   },
 };
 
-// ==================================================================
-// CART  —  /api/v1/ecommerce/cart
-// ==================================================================
 export const cartApi = {
   async getCart() {
     const response = await api.get('/ecommerce/cart');
@@ -459,9 +427,6 @@ export const cartApi = {
   },
 };
 
-// ==================================================================
-// CHECKOUT  —  /api/v1/ecommerce/orders/provider/razorpay
-// ==================================================================
 export const checkoutApi = {
   async getAddresses() {
     const response = await api.get('/ecommerce/addresses', {
@@ -538,9 +503,6 @@ export const loadRazorpayScript = () => {
   });
 };
 
-// ==================================================================
-// AUTH  —  /api/v1/users
-// ==================================================================
 export const authApi = {
   register: (payload) => api.post('/users/register', payload),
   login: (email, password) => api.post('/users/login', { email, password }),
@@ -549,10 +511,6 @@ export const authApi = {
   currentUser: () => api.get('/users/current-user'),
 };
 
-// ==================================================================
-// Aggregate service export: single drop-in object for components.
-// Mirror keys of the former grouped API so existing consumers keep working.
-// ==================================================================
 export const ecommerceApi = {
   profile: profileApi,
   address: addressApi,

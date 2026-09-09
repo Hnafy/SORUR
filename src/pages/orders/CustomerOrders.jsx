@@ -26,7 +26,7 @@ export default function CustomerOrders({ onNavigate, onShowToast }) {
           setPagination(res.data);
         }
       } catch {
-        /* guarded */
+        
       } finally {
         if (active) setLoading(false);
       }

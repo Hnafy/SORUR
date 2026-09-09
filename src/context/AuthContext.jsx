@@ -73,9 +73,6 @@ export function AuthProvider({ children }) {
     async (email, password) => {
       const res = await authApi.login(email, password);
       const { accessToken, refreshToken, user: apiUser } = res.data;
-      // Prefer the real role from the backend when it is already an ADMIN,
-      // otherwise fall back to the client-side env admin check. This keeps the
-      // label aligned with what FreeAPI actually enforces server-side.
       const role = apiUser?.role === 'ADMIN' ? 'ADMIN' : decideRole(email, password);
       const finalUser = persistSession(accessToken, refreshToken, apiUser, role);
       return { ...res, data: { accessToken, refreshToken, user: finalUser } };
@@ -84,9 +81,6 @@ export function AuthProvider({ children }) {
   );
 
   const register = useCallback(async (username, email, password, _role) => {
-    // If the credentials match the env admin, request the ADMIN role on the
-    // backend so the issued JWT carries the admin claim (otherwise FreeAPI
-    // returns 403 for every admin-only mutation).
     const role = decideRole(email, password) === 'ADMIN' ? 'ADMIN' : 'USER';
     return await authApi.register({ username, email, password, role });
   }, []);
@@ -95,7 +89,6 @@ export function AuthProvider({ children }) {
     try {
       await authApi.logout();
     } catch {
-      // ignore server errors on logout
     }
     clearTokens();
     setUser(null);
@@ -115,7 +108,7 @@ export function AuthProvider({ children }) {
         return finalUser;
       }
     } catch {
-      /* blocked */
+      
     }
     return null;
   }, []);

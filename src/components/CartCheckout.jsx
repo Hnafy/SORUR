@@ -440,7 +440,6 @@ export default function CartCheckout({
   Proceed to Checkout
 </button>
 
-
               <small className="d-block text-muted text-center mt-2">
                 Address → Review → Payment
               </small>

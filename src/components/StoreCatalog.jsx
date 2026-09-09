@@ -22,8 +22,6 @@ export default function StoreCatalog({
   const [error, setError] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Locally-controlled search input. Keeps the field responsive and avoids
-  // being controlled by a parent on every keystroke.
   const [localSearch, setLocalSearch] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
 
@@ -31,13 +29,11 @@ export default function StoreCatalog({
     setLocalSearch(value);
   }, []);
 
-  // Debounce the local input before it reaches the fetch effect.
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQuery(localSearch.trim()), 400);
     return () => clearTimeout(t);
   }, [localSearch]);
 
-  // Stable, memoized params object to avoid needless effect re-runs.
   const fetchParams = useMemo(
     () => ({
       page,
@@ -48,12 +44,10 @@ export default function StoreCatalog({
     [page, debouncedQuery, selectedCategory]
   );
 
-  // Reset to first page when filters change
   useEffect(() => {
     setPage(1);
   }, [debouncedQuery, selectedCategory, sortBy]);
 
-  // Load categories once
   useEffect(() => {
     let active = true;
     productApi
@@ -69,7 +63,6 @@ export default function StoreCatalog({
     };
   }, []);
 
-  // Load products when page/filters change
   useEffect(() => {
     let active = true;
     setLoading(true);
@@ -119,7 +112,7 @@ export default function StoreCatalog({
 
   return (
     <div className="container-xl py-4 py-md-5">
-      {/* Header & Title */}
+      {}
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
         <div>
           <h1 className="fw-bold mb-1" style={{ fontSize: '2rem', color: 'var(--color-primary)' }}>
@@ -130,7 +123,7 @@ export default function StoreCatalog({
           </p>
         </div>
 
-        {/* Search input */}
+        {}
         <div className="d-flex align-items-center gap-2">
           <div className="input-group" style={{ maxWidth: '280px' }}>
             <span className="input-group-text bg-white border-end-0 text-muted">
@@ -167,7 +160,7 @@ export default function StoreCatalog({
         </div>
       </div>
 
-      {/* Category Pills Navigation */}
+      {}
       <div className="d-flex gap-2 overflow-auto pb-3 mb-4 scrollbar-none">
         <button
           className={`btn btn-sm rounded-pill px-3 text-nowrap fw-semibold ${
@@ -197,14 +190,14 @@ export default function StoreCatalog({
         })}
       </div>
 
-      {/* Results Count */}
+      {}
       <div className="d-flex justify-content-between align-items-center mb-4 text-muted small">
         <span>
           عرض {products.length} من أصل {totalProducts} منتج
         </span>
       </div>
 
-      {/* Loading state */}
+      {}
       {loading && (
         <div className="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3 g-md-4">
           {Array.from({ length: 8 }).map((_, i) => (
@@ -228,7 +221,7 @@ export default function StoreCatalog({
         </div>
       )}
 
-      {/* Error state */}
+      {}
       {!loading && error && (
         <div className="text-center py-5 bg-white rounded-3 border">
           <span className="material-symbols-outlined text-danger mb-2" style={{ fontSize: '48px' }}>
@@ -245,7 +238,7 @@ export default function StoreCatalog({
         </div>
       )}
 
-      {/* Empty state */}
+      {}
       {!loading && !error && products.length === 0 && (
         <div className="text-center py-5 bg-white rounded-3 border">
           <span className="material-symbols-outlined text-muted mb-2" style={{ fontSize: '48px' }}>
@@ -262,7 +255,7 @@ export default function StoreCatalog({
         </div>
       )}
 
-      {/* Product Grid */}
+      {}
       {!loading && !error && products.length > 0 && (
         <div className="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3 g-md-4">
           {products.map((prod) => (
@@ -279,7 +272,7 @@ export default function StoreCatalog({
         </div>
       )}
 
-      {/* Pagination */}
+      {}
       {!loading && !error && totalPages > 1 && (
         <nav className="d-flex justify-content-center mt-5" aria-label="صفحات المنتجات">
           <ul className="pagination">

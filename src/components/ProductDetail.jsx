@@ -114,7 +114,7 @@ export default function ProductDetail({
     <div className="product-detail-view">
       <div className="container-xl">
 
-        {/* Breadcrumb */}
+        {}
         <nav aria-label="breadcrumb" className="custom-breadcrumb">
           <button className="border-0 bg-transparent p-0 text-muted" onClick={() => onNavigate('home')}>
             الرئيسية
@@ -127,14 +127,14 @@ export default function ProductDetail({
           <span className="current">{product.name}</span>
         </nav>
 
-        {/* Main Product Layout */}
+        {}
         <div className="row g-4 g-lg-5 mb-5 align-items-start">
 
-          {/* Gallery Column */}
+          {}
           <div className="col-12 col-lg-7">
             <div className="d-flex flex-column flex-md-row gap-3">
 
-              {/* Thumbnails */}
+              {}
               <div className="gallery-thumbs order-2 order-md-1 d-flex flex-row flex-md-column overflow-auto pb-2 pb-md-0" style={{ minWidth: '85px' }}>
                 {galleryImages.map((img, idx) => (
                   <button
@@ -148,7 +148,7 @@ export default function ProductDetail({
                 ))}
               </div>
 
-              {/* Main Active Image */}
+              {}
               <div className="main-gallery-card order-1 order-md-2 flex-grow-1">
                 <img
                   src={galleryImages[activeImageIndex] || product.image}
@@ -176,11 +176,11 @@ export default function ProductDetail({
             </div>
           </div>
 
-          {/* Product Info Column */}
+          {}
           <div className="col-12 col-lg-5">
             <div className="d-flex flex-column h-100">
 
-              {/* Badge & Category */}
+              {}
               <div className="mb-2 d-flex flex-wrap gap-2 align-items-center">
                 <span className="badge rounded-pill" style={{ backgroundColor: 'var(--color-surface-high)', color: 'var(--color-on-surface-variant)', fontSize: '0.8rem' }}>
                   {product.category?.name || 'غير مصنف'}
@@ -198,7 +198,7 @@ export default function ProductDetail({
 
               <h1 className="product-detail-title">{product.name}</h1>
 
-              {/* Rating */}
+              {}
               <div className="d-flex align-items-center gap-2 mb-3">
                 <div className="d-flex text-warning">
                   <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
@@ -210,7 +210,7 @@ export default function ProductDetail({
                 <span className="text-muted small">({product.rating || 4.8})</span>
               </div>
 
-              {/* Price */}
+              {}
               <div className="detail-price-tag mb-4">
                 <span>{product.price} ج.م</span>
                 {product.originalPrice && (
@@ -220,14 +220,14 @@ export default function ProductDetail({
                 )}
               </div>
 
-              {/* Description */}
+              {}
               <p className="text-secondary-emphasis mb-4" style={{ lineHeight: '1.8', fontSize: '1rem' }}>
                 {product.description}
               </p>
 
               <hr className="my-3 opacity-25" />
 
-              {/* Quantity Stepper & Stock */}
+              {}
               <div className="mb-4">
                 <div className="d-flex justify-content-between align-items-center mb-2">
                   <label className="fw-semibold text-primary small">الكمية:</label>
@@ -248,7 +248,7 @@ export default function ProductDetail({
                 </div>
               </div>
 
-              {/* Actions */}
+              {}
               <div className="d-flex flex-column gap-3 mt-auto pt-2">
                 <button
                   className="btn-sorur-primary w-100 py-3"
@@ -259,7 +259,7 @@ export default function ProductDetail({
                   أضف إلى السلة ({product.price * quantity} ج.م)
                 </button>
 
-                {/* Trust Badges */}
+                {}
                 <div className="d-flex justify-content-center align-items-center gap-4 text-muted small mt-2">
                   <div className="d-flex align-items-center gap-1">
                     <span className="material-symbols-outlined text-primary" style={{ fontSize: '20px' }}>local_shipping</span>
@@ -278,7 +278,7 @@ export default function ProductDetail({
 
         </div>
 
-        {/* Related Products Grid */}
+        {}
         {related.length > 0 && (
           <section className="pt-5 border-top border-light-subtle">
             <h2 className="text-center fw-bold text-primary mb-4" style={{ fontSize: '1.8rem' }}>

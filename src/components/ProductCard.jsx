@@ -18,11 +18,11 @@ export default function ProductCard({
 
   return (
     <div className="product-card" onClick={() => onSelectProduct(id)}>
-      {/* Image & Badges Container */}
+      {}
       <div className="product-img-wrapper">
         {badge && <span className="product-badge">{badge}</span>}
 
-        {/* Wishlist Button */}
+        {}
         <button
           className={`btn-wishlist ${isWishlisted ? 'active' : ''}`}
           onClick={(e) => {
@@ -45,7 +45,7 @@ export default function ProductCard({
 
         <img src={image} alt={name} className="product-img" loading="lazy" />
 
-        {/* Quick Add Overlay */}
+        {}
         <div className="product-overlay-action">
           <button
             className="btn-quick-add"
@@ -60,7 +60,7 @@ export default function ProductCard({
         </div>
       </div>
 
-      {/* Product Details */}
+      {}
       <div className="product-info">
         <span className="product-category">{categoryName || 'غير مصنف'}</span>
         <h4 className="product-name" title={name}>{name}</h4>

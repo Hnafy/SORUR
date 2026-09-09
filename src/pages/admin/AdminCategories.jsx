@@ -16,23 +16,19 @@ export default function AdminCategories({ onNavigate, onShowToast }) {
   const [error, setError] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Search (client-side on the loaded page set)
   const [search, setSearch] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
 
-  // Create / update modal state (one shared form)
   const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState(null); // category being edited, null = create
+  const [editing, setEditing] = useState(null);
   const [name, setName] = useState('');
   const [fieldError, setFieldError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Delete confirmation modal state
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Debounce the search input before applying the client-side filter.
   const hasTyped = useRef(false);
   useEffect(() => {
     if (!hasTyped.current) {
@@ -43,18 +39,15 @@ export default function AdminCategories({ onNavigate, onShowToast }) {
     return () => clearTimeout(t);
   }, [search]);
 
-  // Reset to first page when the search changes.
   useEffect(() => {
     setPage(1);
   }, [appliedSearch]);
 
-  // Memoized, filtered rows for the current page.
   const filtered = useMemo(() => {
     if (!appliedSearch) return categories;
     return categories.filter((c) => (c.name || '').toLowerCase().includes(appliedSearch));
   }, [categories, appliedSearch]);
 
-  // Load categories from FreeAPI.
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -131,7 +124,6 @@ export default function AdminCategories({ onNavigate, onShowToast }) {
     setDeleting(true);
     try {
       await categoryApi.deleteCategory(deleteTarget.id);
-      // Optimistic update: remove from list immediately.
       setCategories((prev) => prev.filter((c) => c.id !== deleteTarget.id));
       setTotalCategories((t) => Math.max(0, t - 1));
       onShowToast?.(`تم حذف القسم "${deleteTarget.name}"`);
@@ -162,7 +154,7 @@ export default function AdminCategories({ onNavigate, onShowToast }) {
       </div>
 
       <div className="bg-white rounded-3 border p-3 p-md-4 shadow-sm">
-        {/* Search */}
+        {}
         <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
           <div className="input-group" style={{ maxWidth: '300px' }}>
             <span className="input-group-text bg-white border-end-0 text-muted">
@@ -229,7 +221,7 @@ export default function AdminCategories({ onNavigate, onShowToast }) {
               </table>
             </div>
 
-            {/* Pagination */}
+            {}
             {totalPages > 1 && (
               <nav className="d-flex justify-content-center mt-3" aria-label="صفحات الأقسام">
                 <ul className="pagination pagination-sm mb-0">
@@ -251,7 +243,7 @@ export default function AdminCategories({ onNavigate, onShowToast }) {
         )}
       </div>
 
-      {/* Create / Update modal (reused form) */}
+      {}
       {modalOpen && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1060 }} tabIndex="-1">
           <div className="modal-dialog modal-dialog-centered">
@@ -289,7 +281,7 @@ export default function AdminCategories({ onNavigate, onShowToast }) {
         </div>
       )}
 
-      {/* Delete confirmation modal */}
+      {}
       {confirmOpen && deleteTarget && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1070 }} tabIndex="-1">
           <div className="modal-dialog modal-dialog-centered modal-sm">

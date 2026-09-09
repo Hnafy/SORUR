@@ -3,12 +3,12 @@ import React from 'react';
 export default function HeroSection({ onExploreShop, onExploreOffers }) {
   return (
     <>
-      {/* Hero Banner Section */}
+      {}
       <section className="hero-section">
         <div className="container-xl">
           <div className="row align-items-center g-4 min-vh-50">
             
-            {/* Text & CTA Column */}
+            {}
             <div className="col-12 col-lg-5 order-2 order-lg-1 text-center text-lg-end">
               <div className="hero-subtitle animate-fade-in-down anim-delay-1 text-start">تشكيلة الموسم الجديد</div>
               <h1 className="hero-headline animate-fade-in-up anim-delay-2 text-start">
@@ -36,7 +36,7 @@ export default function HeroSection({ onExploreShop, onExploreOffers }) {
               </div>
             </div>
 
-            {/* Visual Hero Image Column */}
+            {}
             <div className="col-12 col-lg-7 order-1 order-lg-2">
               <div className="hero-img-container animate-fade-in-scale anim-delay-2">
                 <img 
@@ -51,7 +51,7 @@ export default function HeroSection({ onExploreShop, onExploreOffers }) {
         </div>
       </section>
 
-      {/* Brand Value Propositions / Features Section */}
+      {}
       <section className="features-section">
         <div className="container-xl">
           <div className="row g-4">

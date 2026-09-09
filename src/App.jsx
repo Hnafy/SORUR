@@ -28,10 +28,7 @@ import AdminCategories from './pages/admin/AdminCategories';
 import AdminCoupons from './pages/admin/AdminCoupons';
 import AdminOrders from './pages/admin/AdminOrders';
 import NotFound from './pages/NotFound';
-// Layout with global Navbar + Footer for the public store and customer areas.
-// Defined at module scope so its identity stays stable across App re-renders;
-// an inline definition would cause React Router to remount the whole subtree
-// (refetching products/categories) on every parent state change.
+
 function MainLayout({ currentView, onNavigate, cartCount, onCartClick, wishlistCount, onSearchClick, onShowToast }) {
   return (
     <>
@@ -51,7 +48,6 @@ function MainLayout({ currentView, onNavigate, cartCount, onCartClick, wishlistC
   );
 }
 
-// Route guards (module scope for stable identity).
 function RequireAuth({ isAuthenticated, from }) {
   return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace state={{ from }} />;
 }
@@ -62,13 +58,11 @@ function RequireAdmin({ isAuthenticated, isAdmin, from }) {
   return <Outlet />;
 }
 
-// Order detail wrapper that reads the :orderId param.
 function OrderDetailRoute({ onNavigate, onShowToast }) {
   const { orderId } = useParams();
   return <CustomerOrderDetail orderId={orderId} onNavigate={onNavigate} onShowToast={onShowToast} />;
 }
 
-// ahmed
 const VIEW_TO_PATH = {
   "home": '/',
   "shop": '/shop',
@@ -88,7 +82,6 @@ const VIEW_TO_PATH = {
   'admin-orders': '/admin/orders',
 };
 
-// view key for active-link highlighting in the Navbar.
 function pathToViewKey(pathname) {
   const p = pathname || '/';
   if (p === '/' || p === '/home') return 'home';
@@ -125,7 +118,6 @@ export default function App() {
   const [searchResults, setSearchResults] = useState([]);
   const [searchResultsLoading, setSearchResultsLoading] = useState(false);
 
-  // The cart is stored on the server (FreeAPI), not in localStorage.
   const [cart, setCart] = useState([]);
   const [wishlist, setWishlist] = useState(() => {
     const saved = localStorage.getItem('sorur_wishlist');
@@ -139,7 +131,6 @@ export default function App() {
   const [cartBusyKey, setCartBusyKey] = useState(null);
   const [cartError, setCartError] = useState('');
 
-  // Keep selectedProductId in sync with the URL for deep links / refresh.
   useEffect(() => {
     const m = location.pathname.match(/^\/product\/(.+)$/);
     if (m) setSelectedProductId(decodeURIComponent(m[1]));
@@ -151,10 +142,8 @@ export default function App() {
     navigate(path);
   };
 
-  // Local storage synchronization
   useEffect(() => localStorage.setItem('sorur_wishlist', JSON.stringify(wishlist)), [wishlist]);
 
-  // Load the cart only after the user has authenticated.
   useEffect(() => {
     if (!isAuthenticated) {
       setCart([]);
@@ -178,7 +167,6 @@ export default function App() {
     };
   }, [isAuthenticated]);
 
-  // Fetch best sellers for the homepage
   useEffect(() => {
     let active = true;
     productApi
@@ -194,7 +182,6 @@ export default function App() {
     };
   }, []);
 
-  // Debounced live search for the search modal (only while the modal is open).
   useEffect(() => {
     if (!searchModalOpen) {
       setSearchResults([]);
@@ -217,7 +204,6 @@ export default function App() {
     return () => clearTimeout(t);
   }, [modalSearch, searchModalOpen]);
 
-  // Toast auto-clear
   useEffect(() => {
     if (toastMessage) {
       const timer = setTimeout(() => setToastMessage(''), 3500);
@@ -348,7 +334,7 @@ const handleClearCart = async () => {
   return (
     <div className="app-wrapper">
       <Routes>
-        {/* global navbar/footer */}
+        {}
         <Route
           element={
             <MainLayout
@@ -469,7 +455,7 @@ const handleClearCart = async () => {
           <Route path="/login" element={<Login onNavigate={navigateTo} onShowToast={showToast} />} />
           <Route path="/register" element={<Register onNavigate={navigateTo} onShowToast={showToast} />} />
 
-          {/* Customer area (requires auth) */}
+          {}
             <Route element={<RequireAuth isAuthenticated={isAuthenticated} from={location.pathname} />}>
             <Route path="/customer/profile" element={<CustomerProfile onNavigate={navigateTo} onShowToast={showToast} />} />
             <Route path="/customer/addresses" element={<CustomerAddresses onNavigate={navigateTo} onShowToast={showToast} />} />
@@ -480,7 +466,7 @@ const handleClearCart = async () => {
           <Route path="*" element={<NotFound onNavigate={navigateTo} />} />
         </Route>
 
-        {/* Admin area (requires admin, own sidebar layout, no global navbar/footer) */}
+        {}
         <Route element={<RequireAdmin isAuthenticated={isAuthenticated} isAdmin={isAdmin} from={location.pathname} />}>
           <Route path="/admin" element={<AdminOverview onNavigate={navigateTo} onShowToast={showToast} />} />
           <Route path="/admin/products" element={<AdminProducts onNavigate={navigateTo} onShowToast={showToast} />} />

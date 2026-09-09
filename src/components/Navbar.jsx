@@ -34,7 +34,7 @@ export default function Navbar({
       <div className="container-xl">
         <div className="d-flex align-items-center justify-content-between py-3">
           
-          {/* Logo & Brand Name */}
+          {}
           <div className="d-flex align-items-center gap-3">
             <button 
               className="d-flex align-items-center gap-2 text-decoration-none border-0 bg-transparent p-0"
@@ -49,7 +49,7 @@ export default function Navbar({
             </button>
           </div>
 
-          {/* Desktop Navigation Links */}
+          {}
           <nav className="d-none d-md-flex align-items-center gap-2">
             <button 
               className={`nav-link-custom ${currentView === 'home' ? 'active' : ''}`}
@@ -71,9 +71,9 @@ export default function Navbar({
             </button>
           </nav>
 
-          {/* Actions & Utilities */}
+          {}
           <div className="d-flex align-items-center gap-2">
-            {/* Account / Login Button */}
+            {}
             <button
               className="icon-action-btn"
               onClick={() => onNavigate(isAdmin ? 'admin' : isAuthenticated ? 'customer-profile' : 'login')}
@@ -82,7 +82,7 @@ export default function Navbar({
             >
               <span className="material-symbols-outlined">{isAuthenticated ? 'account_circle' : 'person'}</span>
             </button>
-            {/* Search Button */}
+            {}
             <button 
               className="icon-action-btn"
               onClick={onSearchClick}
@@ -92,7 +92,7 @@ export default function Navbar({
               <span className="material-symbols-outlined">search</span>
             </button>
 
-            {/* Cart Button with Count Badge */}
+            {}
           <button
              className="icon-action-btn"
              onClick={() => onCartClick?.()}
@@ -106,7 +106,7 @@ export default function Navbar({
               )}
             </button>
 
-            {/* Mobile Menu Hamburger */}
+            {}
             <button 
               className="d-md-none icon-action-btn"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -120,7 +120,7 @@ export default function Navbar({
 
         </div>
 
-        {/* Mobile Navigation Drawer */}
+        {}
         {mobileMenuOpen && (
           <div className="d-md-none py-3 border-top border-light-subtle animate-fade-in-down">
             <div className="d-flex flex-column gap-2">

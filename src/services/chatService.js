@@ -32,9 +32,6 @@ const toCatalogEntry = (p) => ({
   rating: p.rating ?? null,
 });
 
-// Fetch the active product catalog from FreeAPI and reduce it to a compact
-// summary the model can reason over. Pulls the first pages (best effort) and
-// prefers in-stock items so recommendations reflect real inventory.
 const fetchCatalogSummary = async () => {
   const pages = [1, 2, 3];
   const results = await Promise.all(
@@ -49,7 +46,6 @@ const fetchCatalogSummary = async () => {
 
   const unique = Array.from(new Map(products.map((p) => [p.id, p])).values());
 
-  // Put in-stock items first, then keep up to CATALOG_LIMIT.
   const sorted = [...unique].sort(
     (a, b) => Number(b.stock > 0) - Number(a.stock > 0)
   );
@@ -58,8 +54,6 @@ const fetchCatalogSummary = async () => {
 
 const toGroqMessage = (role, content) => ({ role, content });
 
-// Sends a chat request to Groq using the current store inventory as context.
-// Returns the assistant's reply text. Throws sanitized errors only.
 export const sendChatMessage = async ({ message, history = [] }) => {
   const cleanMessage = String(message || '').trim();
   if (!cleanMessage) {
@@ -108,6 +102,5 @@ export const sendChatMessage = async ({ message, history = [] }) => {
   return content.trim();
 };
 
-// User-facing, safe fallback message. No raw errors, stack traces, or keys.
 export const getFallbackMessage = () =>
   "Sorry, I'm having trouble connecting right now. Please try again shortly.";

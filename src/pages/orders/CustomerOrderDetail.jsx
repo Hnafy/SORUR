@@ -22,7 +22,7 @@ export default function CustomerOrderDetail({ orderId, onNavigate, onShowToast }
         const res = await orderApi.getOrderById(orderId);
         if (active && res.success) setDetail(res.data);
       } catch {
-        /* guarded */
+        
       } finally {
         if (active) setLoading(false);
       }

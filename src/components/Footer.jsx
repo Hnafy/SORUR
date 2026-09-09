@@ -18,7 +18,7 @@ export default function Footer({ onNavigate, onShowToast }) {
       <div className="container-xl">
         <div className="row g-4 mb-4">
           
-          {/* Brand Info */}
+          {}
           <div className="col-12 col-md-4">
             <h3 className="footer-brand-title">سرور</h3>
             <p className="text-secondary-fixed-dim opacity-75 mb-3" style={{ fontSize: '0.95rem', lineHeight: '1.7' }}>
@@ -26,7 +26,7 @@ export default function Footer({ onNavigate, onShowToast }) {
             </p>
           </div>
 
-          {/* Quick Links */}
+          {}
           <div className="col-6 col-md-2">
             <h5 className="text-white fw-bold mb-3" style={{ fontSize: '1.05rem' }}>روابط سريعة</h5>
             <ul className="list-unstyled">
@@ -53,7 +53,7 @@ export default function Footer({ onNavigate, onShowToast }) {
             </ul>
           </div>
 
-          {/* Customer Service */}
+          {}
           <div className="col-6 col-md-3">
             <h5 className="text-white fw-bold mb-3" style={{ fontSize: '1.05rem' }}>خدمة العملاء</h5>
             <ul className="list-unstyled">
@@ -64,7 +64,7 @@ export default function Footer({ onNavigate, onShowToast }) {
             </ul>
           </div>
 
-          {/* Footer Image */}
+          {}
           <div className="col-12 col-md-3 d-flex align-items-center justify-content-center">
             <img
               src="/image 1.jpeg"
@@ -75,7 +75,7 @@ export default function Footer({ onNavigate, onShowToast }) {
 
         </div>
 
-        {/* Copyright divider */}
+        {}
         <div className="pt-3 mt-4 border-top border-secondary border-opacity-25 text-center text-secondary-fixed-dim opacity-75 small">
           <p className="mb-0">
             © {new Date().getFullYear()} سرور لتصميمات السعادة. جميع الحقوق محفوظة.

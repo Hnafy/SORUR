@@ -27,7 +27,7 @@ export default function AdminOverview({ onNavigate, onShowToast }) {
           categories: categories?.categories || categories?.data?.categories || [],
         });
       } catch {
-        /* guarded */
+        
       } finally {
         if (active) setLoading(false);
       }

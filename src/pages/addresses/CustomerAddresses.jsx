@@ -40,10 +40,8 @@ const load = async () => {
   }
 };
 
-
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const openCreate = () => {
@@ -123,7 +121,6 @@ const handleSave = async (e) => {
     setSaving(false);
   }
 };
-
 
   const handleDelete = async (id) => {
     try {

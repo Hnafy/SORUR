@@ -13,14 +13,13 @@ const EMPTY_FORM = {
   price: '',
   stock: 0,
   mainImageFile: null,
-  newSubFiles: [], // { file, preview }
-  existingSubImages: [], // { id, url } (edit only)
+  newSubFiles: [],
+  existingSubImages: [],
 };
 
 export default function AdminProducts({ onNavigate, onShowToast }) {
   const { user, logout } = useAuth();
 
-  // ---- table state ----
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [totalProducts, setTotalProducts] = useState(0);
@@ -30,7 +29,6 @@ export default function AdminProducts({ onNavigate, onShowToast }) {
   const [error, setError] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // ---- debounced client-side search ----
   const [search, setSearch] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
   const hasTyped = useRef(false);
@@ -64,7 +62,6 @@ export default function AdminProducts({ onNavigate, onShowToast }) {
     });
   }, [products, appliedSearch, categoriesById]);
 
-  // ---- load ----
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -91,7 +88,6 @@ export default function AdminProducts({ onNavigate, onShowToast }) {
 
   const catName = useCallback((id) => categoriesById[id] || 'غير مصنف', [categoriesById]);
 
-  // ---- create/edit modal ----
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -109,7 +105,7 @@ export default function AdminProducts({ onNavigate, onShowToast }) {
       try {
         URL.revokeObjectURL(mainPreview);
       } catch {
-        /* noop */
+        
       }
     }
     setMainPreview('');
@@ -150,7 +146,7 @@ export default function AdminProducts({ onNavigate, onShowToast }) {
         try {
           URL.revokeObjectURL(prev);
         } catch {
-          /* noop */
+          
         }
       }
       return file ? URL.createObjectURL(file) : '';
@@ -177,7 +173,7 @@ export default function AdminProducts({ onNavigate, onShowToast }) {
         try {
           URL.revokeObjectURL(removed.preview);
         } catch {
-          /* noop */
+          
         }
       }
       return { ...prev, newSubFiles: prev.newSubFiles.filter((_, i) => i !== index) };
@@ -265,7 +261,6 @@ export default function AdminProducts({ onNavigate, onShowToast }) {
     }
   };
 
-  // ---- view + delete modals ----
   const [viewTarget, setViewTarget] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -313,7 +308,7 @@ export default function AdminProducts({ onNavigate, onShowToast }) {
       </div>
 
       <div className="bg-white rounded-3 border p-3 p-md-4 shadow-sm">
-        {/* Search + count */}
+        {}
         <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
           <div className="input-group" style={{ maxWidth: '300px' }}>
             <span className="input-group-text bg-white border-end-0 text-muted">
@@ -405,7 +400,7 @@ export default function AdminProducts({ onNavigate, onShowToast }) {
               </table>
             </div>
 
-            {/* Pagination */}
+            {}
             {totalPages > 1 && (
               <nav className="d-flex justify-content-center mt-3" aria-label="صفحات المنتجات">
                 <ul className="pagination pagination-sm mb-0">
@@ -427,7 +422,7 @@ export default function AdminProducts({ onNavigate, onShowToast }) {
         )}
       </div>
 
-      {/* View modal */}
+      {}
       {viewTarget && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1055 }} tabIndex="-1">
           <div className="modal-dialog modal-dialog-centered modal-lg">
@@ -490,7 +485,7 @@ export default function AdminProducts({ onNavigate, onShowToast }) {
         </div>
       )}
 
-      {/* Create / Edit modal */}
+      {}
       {modalOpen && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1060 }} tabIndex="-1">
           <div className="modal-dialog modal-dialog-centered modal-xl">
@@ -563,7 +558,7 @@ export default function AdminProducts({ onNavigate, onShowToast }) {
                     </div>
                   </div>
 
-                  {/* Main image */}
+                  {}
                   <div className="border rounded-3 p-3 mb-3 bg-light bg-opacity-50">
                     <div className="d-flex justify-content-between align-items-center mb-2">
                       <label className="form-label small fw-bold text-dark mb-0">
@@ -585,22 +580,7 @@ export default function AdminProducts({ onNavigate, onShowToast }) {
                       <div className="flex-grow-1">
                         <input
                           type="file"
-                          accept="image/*"
-                          className="form-control"
-                          onChange={(e) => setMainFile(e.target.files?.[0] || null)}
-                        />
-                        <div className="text-muted small mt-1">
-                          {editing
-                            ? form.mainImageFile
-                              ? 'سيتم استبدال الصورة الرئيسية عند الحفظ'
-                              : 'اتركه فارغاً للإبقاء على الصورة الحالية'
-                            : 'اختر صورة رئيسية للمنتج'}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Sub images */}
+                          accept="image}
                   <div className="border rounded-3 p-3 bg-light bg-opacity-50">
                     <div className="d-flex justify-content-between align-items-center mb-2">
                       <label className="form-label small fw-bold text-dark mb-0">صور إضافية (اختياري)</label>
@@ -656,43 +636,7 @@ export default function AdminProducts({ onNavigate, onShowToast }) {
                           <span className="material-symbols-outlined" style={{ fontSize: '26px' }}>add</span>
                           <input
                             type="file"
-                            accept="image/*"
-                            multiple
-                            className="d-none"
-                            onChange={(e) => {
-                              addSubFiles(e.target.files);
-                              e.target.value = '';
-                            }}
-                          />
-                        </label>
-                      )}
-                    </div>
-                    <div className="text-muted small">
-                      {editing
-                        ? 'اختر صوراً جديدة لإضافتها. لحذف صورة موجودة اضغط على العلامة الحمراء.'
-                        : `يمكنك اختيار حتى ${MAX_SUB_IMAGES} صور إضافية.`}
-                    </div>
-                  </div>
-
-                  <div className="mt-3 d-flex gap-2 align-items-center">
-                    <button type="submit" className="btn-sorur-admin" disabled={saving}>
-                      {saving ? (
-                        <span className="d-inline-flex align-items-center gap-2">
-                          <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                          جاري الحفظ... {uploadProgress > 0 && `(${Math.round(uploadProgress)}%)`}
-                        </span>
-                      ) : editing ? 'حفظ التعديلات' : 'إضافة المنتج'}
-                    </button>
-                    <button type="button" className="btn btn-outline-secondary" onClick={closeModal} disabled={saving}>إلغاء</button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete confirmation modal */}
+                            accept="image}
       {confirmOpen && deleteTarget && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1070 }} tabIndex="-1">
           <div className="modal-dialog modal-dialog-centered modal-sm">

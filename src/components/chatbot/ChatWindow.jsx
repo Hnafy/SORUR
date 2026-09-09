@@ -19,7 +19,7 @@ const writeHistory = (messages) => {
   try {
     sessionStorage.setItem(HISTORY_KEY, JSON.stringify(messages));
   } catch {
-    /* sessionStorage unavailable */
+    
   }
 };
 

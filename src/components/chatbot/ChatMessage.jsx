@@ -1,7 +1,5 @@
 import React from 'react';
 
-// Renders a small, safe subset of markdown: bold, italic, inline code, and
-// bullet/numbered lists. Content is text-only; links become plain text.
 const renderInline = (text) => {
   const escaped = String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   return escaped

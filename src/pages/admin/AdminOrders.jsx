@@ -24,7 +24,7 @@ export default function AdminOrders({ onNavigate, onShowToast }) {
       const res = await orderApi.getOrderListAdmin(query);
       setOrders(res?.data?.orders || res?.orders || []);
     } catch {
-      /* guarded */
+      
     } finally {
       setLoading(false);
     }
@@ -32,7 +32,6 @@ export default function AdminOrders({ onNavigate, onShowToast }) {
 
   useEffect(() => {
     load('');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleFilter = (st) => {

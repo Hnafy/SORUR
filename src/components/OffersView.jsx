@@ -43,7 +43,7 @@ export default function OffersView({
 
   return (
     <div className="container-xl py-4 py-md-5">
-      {/* Offers Hero Header */}
+      {}
       <div className="bg-warning bg-opacity-10 border border-warning border-opacity-50 rounded-4 p-4 p-md-5 mb-5 text-center text-md-end">
         <div className="row align-items-center g-4">
           <div className="col-12 col-md-8">
@@ -104,7 +104,7 @@ export default function OffersView({
         </div>
       </div>
 
-      {/* Discounted Products Grid */}
+      {}
       <div className="mb-4">
         <h2 className="fw-bold mb-3" style={{ fontSize: '1.6rem', color: 'var(--color-primary)' }}>
           منتجات عليها تخفيضات مباشرة
