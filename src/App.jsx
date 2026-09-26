@@ -213,8 +213,12 @@ export default function App() {
 
   const showToast = (msg) => setToastMessage(msg);
 
- const handleAddToCart = async (product, quantity = 1, color = '') => {
-  if (!isAuthenticated || cartBusyKey) return;
+  const handleAddToCart = async (product, quantity = 1, color = '') => {
+  if (!isAuthenticated) {
+    showToast('يجب تسجيل الدخول أولاً لإضافة المنتجات إلى السلة');
+    return;
+  }
+  if (cartBusyKey) return;
 
   const key = `${product.id}:${color || 'Default'}`;
   const stock = Number(product.stock || 0);

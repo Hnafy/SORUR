@@ -468,13 +468,32 @@ input, select, textarea {
   justify-content: center;
   opacity: 0;
   transform: translateY(10px);
+  pointer-events: none;
   transition: all 0.25s ease;
   z-index: 2;
 }
 
-.product-card:hover .product-overlay-action {
-  opacity: 1;
-  transform: translateY(0);
+@media (hover: hover) and (pointer: fine) {
+  .product-card:hover .product-overlay-action {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+}
+
+@media (hover: none), (pointer: coarse), (max-width: 767.98px) {
+  .product-overlay-action {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .btn-quick-add {
+    width: 100%;
+    justify-content: center;
+    padding: 0.4rem 0.5rem;
+    font-size: 0.78rem;
+  }
 }
 
 .btn-quick-add {
@@ -1128,6 +1147,7 @@ input, select, textarea {
   align-items: center;
   gap: 0.75rem;
   z-index: 1080;
+  max-width: calc(100vw - 48px);
   animation: slideUpToast 0.3s ease-out;
 }
 
