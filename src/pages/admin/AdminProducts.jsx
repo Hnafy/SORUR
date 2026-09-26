@@ -580,7 +580,21 @@ export default function AdminProducts({ onNavigate, onShowToast }) {
                       <div className="flex-grow-1">
                         <input
                           type="file"
-                          accept="image}
+                          accept="image/*"
+                          className="form-control"
+                          onChange={(e) => setMainFile(e.target.files?.[0] || null)}
+                        />
+                        <div className="text-muted small mt-1">
+                          {editing
+                            ? form.mainImageFile
+                              ? 'سيتم استبدال الصورة الرئيسية عند الحفظ'
+                              : 'اتركه فارغاً للإبقاء على الصورة الحالية'
+                            : 'اختر صورة رئيسية للمنتج'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="border rounded-3 p-3 bg-light bg-opacity-50">
                     <div className="d-flex justify-content-between align-items-center mb-2">
                       <label className="form-label small fw-bold text-dark mb-0">صور إضافية (اختياري)</label>
@@ -636,7 +650,42 @@ export default function AdminProducts({ onNavigate, onShowToast }) {
                           <span className="material-symbols-outlined" style={{ fontSize: '26px' }}>add</span>
                           <input
                             type="file"
-                            accept="image}
+                            accept="image/*"
+                            multiple
+                            className="d-none"
+                            onChange={(e) => {
+                              addSubFiles(e.target.files);
+                              e.target.value = '';
+                            }}
+                          />
+                        </label>
+                      )}
+                    </div>
+                    <div className="text-muted small">
+                      {editing
+                        ? 'اختر صوراً جديدة لإضافتها. لحذف صورة موجودة اضغط على العلامة الحمراء.'
+                        : `يمكنك اختيار حتى ${MAX_SUB_IMAGES} صور إضافية.`}
+                    </div>
+                  </div>
+
+                  <div className="mt-3 d-flex gap-2 align-items-center">
+                    <button type="submit" className="btn-sorur-admin" disabled={saving}>
+                      {saving ? (
+                        <span className="d-inline-flex align-items-center gap-2">
+                          <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                          جاري الحفظ... {uploadProgress > 0 && `(${Math.round(uploadProgress)}%)`}
+                        </span>
+                      ) : editing ? 'حفظ التعديلات' : 'إضافة المنتج'}
+                    </button>
+                    <button type="button" className="btn btn-outline-secondary" onClick={closeModal} disabled={saving}>إلغاء</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {confirmOpen && deleteTarget && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1070 }} tabIndex="-1">
           <div className="modal-dialog modal-dialog-centered modal-sm">
